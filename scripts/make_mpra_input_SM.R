@@ -21,11 +21,11 @@ RUN_NAME = unique(mData$run_name)
 # #DELETE LATER!
 # setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/19664---17-03-2023--11-11-08")
 # 
-# barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
-# allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
-# rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
-# dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
-# mData = read_csv("./metaData.csv")
+barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
+allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
+rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
+dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
+mData = read_csv("./metaData.csv")
 # #####
 
 # #Get DNA depth factor
@@ -87,10 +87,10 @@ if (args[6] != "None"){ #If a sixth argument is passed in that is not "None" we 
   dna_sample_map = read_tsv(args[6], col_names = F)
   ###
   #DELETE LATER
-  # dna_sample_map = read_tsv("20250_dna_map.tsv", col_names = F)
+  # dna_sample_map = read_tsv("../../../20250_dna_map_full.tsv", col_names = F)
   ####
-  dna_sample_map$X1 = paste0("sample",dna_sample_map$X1)
-  dna_sample_map$X2 = paste0("sample",dna_sample_map$X2)
+  dna_sample_map$X1 = paste0("sample",dna_sample_map$X1) # X1 is DNA name
+  dna_sample_map$X2 = paste0("sample",dna_sample_map$X2) # X2 is RNA name
   
   rna_joined = left_join(rna_joined, dna_sample_map,by = c("name" = "X2")) %>% rename("DNA_name" = X1)
   dna_top %>% rename("DNA_name" = name) -> dna_top
@@ -103,11 +103,7 @@ if (args[6] != "None"){ #If a sixth argument is passed in that is not "None" we 
   X1 = rep(only_dna_name, length(X2))
   dna_sample_map <- data.frame (X1,X2)
   left_join(dna_top %>% rename("DNA_name" = name), rna_joined, by = c("barcode", "architecture")) -> mpra_base
-  # mpra_base$DNA_name = only_dna_name
 }
-
-
-
 
 allDataFilteredJoined %>% 
   group_by(treatment, name) %>%
@@ -140,6 +136,10 @@ rna_joined %>%
   left_join(treatment_ids) %>%
   select(-treatment) %>% 
   rename(treatment = t_id) -> depth_factors
+
+depth_factors %>% 
+  left_join(dna_sample_map, by = c("name" = "X2")) %>%
+  rename(dna_name = X1) ->  depth_factors
 write_csv(depth_factors, paste0(PATH_TO_MPRA_INPUT, "rna_depth.csv"))
 
 

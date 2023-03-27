@@ -3,7 +3,7 @@ import sys
 import os
 import subprocess
 import re
-MERGED_DIR = "merged_files/"
+MERGED_DIR = "joined_files/"
 
 file_info = open(sys.argv[1], "r")
 files_to_count = []

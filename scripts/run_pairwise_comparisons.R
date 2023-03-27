@@ -1,17 +1,17 @@
-
 library(tidyverse)
 library(dplyr)
 library(MPRAnalyze)
 library(BiocParallel)
-library(jsonlite)
+
+RESULTS_DIR = "pairwise_results/"
 
 print(getwd())
-param <- BatchtoolsParam(workers = 3)
-
 wd = getwd()
 args = commandArgs(trailingOnly=TRUE)
 
-comps = read_csv(args[1])
+comps = read_tsv(args[1])
+param <- BatchtoolsParam(workers = args[2])
+
 all_runs = unique(c(comps$base_run, comps$stim_run))
 
 rna_counts = data.frame()
@@ -58,7 +58,7 @@ dna_depth_factor %>%
 #Get bool vector of if each row is a control
 controls = grepl('^Spacer|^Scramble', rna_counts$architecture)
 
-assert("RNA and DNA counts same length", nrow(dna_counts) == nrow(rna_counts))
+stopifnot(nrow(dna_counts) == nrow(rna_counts))
 architecture_order = dna_counts$architecture
 
 #Configure the row names
@@ -80,7 +80,7 @@ for (id_iter in comps$id){
   stim_t_id = (treatment_ids %>% filter(run == stim_run, treatment == stim_treatment))$t_id
   regex = paste0(base_t_id,"\\.|",stim_t_id,"\\.") 
   
-  name_csv = paste0(base_run, "_", base_treatment,"_vs_",stim_run, "_", stim_treatment)
+  name_csv = paste0(RESULTS_DIR, base_treatment, "-",base_run ,"__",stim_treatment, "-",stim_run)
   name_csv = gsub(' ','_',name_csv)
   
   grep(regex, colnames(rna_counts)) -> split_indices
@@ -97,9 +97,11 @@ for (id_iter in comps$id){
     
     cur_rna_depth = as.double((rna_depth_factor %>%
                                     filter(treatment == cur_condition, batch == as.character(cur_batch)))$norm)
+    cur_dna_name = (rna_depth_factor %>%
+                                 filter(treatment == cur_condition, batch == as.character(cur_batch)))$dna_name
     rna_depth = c(rna_depth, cur_rna_depth)
     
-    cur_dna_depth =  (dna_depth_factor %>% filter(run_name == cur_run))$norm
+    cur_dna_depth =  (dna_depth_factor %>% filter(run_name == cur_run, name == cur_dna_name))$norm
     dna_depth = c(dna_depth, cur_dna_depth)
   }
   
@@ -107,7 +109,7 @@ for (id_iter in comps$id){
   new_col_ano[c('conditions', 'batch', "barcode")] <- str_split_fixed(new_col_ano$cur_depth_cols, '\\.', 3)
   new_col_ano <- data.frame(new_col_ano%>%select(-cur_depth_cols), row.names=new_col_ano$cur_depth_cols)
   new_col_ano$condition <- as.factor(new_col_ano$condition)
-  new_col_ano$condition <- relevel(new_col_ano$condition, base_t_id) #The condition must be a factor with 
+  new_col_ano$condition <- relevel(new_col_ano$condition, base_t_id) #The condition must be a factor with base first
   new_col_ano=new_col_ano %>%select(-conditions)
   complete_obj <- MpraObject(dnaCounts = as.matrix(dna_counts[split_indices]),
                              rnaCounts = as.matrix(rna_counts[split_indices]),
@@ -139,5 +141,22 @@ for (id_iter in comps$id){
   res$architecture = row.names(res)
   
   write_csv(res, paste0(name_csv,'.csv'))
+  
+  #Get the architectures that are completely missing from each treatment type
+  rna_counts[split_indices] %>% 
+    rownames_to_column(var="architecture")  %>% 
+    pivot_longer(cols = -architecture) %>% 
+    mutate(treatment = str_extract(name, "^[^.]+"))   %>%
+    select(-name) %>%
+    group_by(architecture, treatment) %>% 
+    summarise(sum = sum(value))  %>%
+    filter(sum == 0) %>% 
+    left_join(treatment_ids, by=c("treatment" = "t_id")) %>%
+    select(-treatment, -sum) %>%
+    rename(treatment = treatment.y) %>%
+    arrange(treatment, run) -> missing_architectures
+  
+  write_csv(missing_architectures, paste0(name_csv,'__missing_architectures.csv'))
+  
   
 }

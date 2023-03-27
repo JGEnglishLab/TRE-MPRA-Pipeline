@@ -1,6 +1,6 @@
 import os
 
-MERGE_DIR = "merged_files/"
+MERGE_DIR = "joined_files/"
 TRIM_DIR = "trimmed_files/"
 
 f = open(f"{MERGE_DIR}matching_names.csv", "r+")
