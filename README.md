@@ -119,24 +119,43 @@ The general work flow of TMP is as follows. For each of your runs, you will run 
 #### -p --pairwise_tsv
 - Used to specify a path to a tsv file containg pairwise comparisons
 - If this flag is left blank TMP_comparative.py will ask for user input to create the TSV
-- If you make your own tsv you must use this header `id	base_treatment	stim_treatment	base_run	stim_run`
-- The ID column should just contain a unique integer for each row
-- 
+- If you make your own tsv you must use this header 
+- `id	base_treatment	stim_treatment	base_run	stim_run`
+- The id column should just contain a unique integer for each row
+- See example below
 
 ```
 id	base_treatment	stim_treatment	base_run	stim_run
-1	Serum Free	Marin 1	19664	20250
+1	Serum-Free	Marin-1	19664	20250
 2	ADRB2-2	ADRB2-5	20250	20250
-3	Marin 1	ADRB2-5	20250	20250
-4	FBS	Marin 1	19664	20250
+3	Marin-1	ADRB2-5	20250	20250
+4	FBS	Marin-1	19664	20250
 ```
 
 #### -m --multi_tsv
-- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
-- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+- Used to specify a path to a tsv file containg multivariate comparisons
+- If this flag is left blank TMP_comparative.py will ask for user input to create the TSV
+- If you make your own tsv you must use this header 
+- `id	treatment	run`
+- The id column should be used to specify the multivariate comparisons, for example if you wanted to compare treatments A, B and C against each other, you would give them all the same id
+- See example below
+
+```
+id	treatment	run
+1	Marin-1	20250
+1	Marin-2	20250
+1	Marin-3	20250
+2	Serum Free	19664
+2	ADRB2-2	20250
+2	ADRB2-5	20250
+3	Serum Free	19664
+3	ADRB2-5	20250
+3	Marin-3	20250
+3	FBS	19664
+```
 
 #### -n --n_workers
-- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
-- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+- Used to specify the number of threads
+- Default is 6
 
 
