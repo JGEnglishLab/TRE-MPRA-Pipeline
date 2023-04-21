@@ -1,6 +1,6 @@
 # TMP
 
-Welcome to the TRE massively parallel reporter assay pipeline (TMP) github. This code was designed for users to be able to analyze their own fastq after performing MPRA studies using the TRE library from the english lab.
+Welcome to the TRE massively parallel reporter assay pipeline (TMP) github. This code was designed for users to be able to analyze their own fastq after performing MPRA studies using the TRE library from the English lab.
 
 
 ## Downloading Instructions
