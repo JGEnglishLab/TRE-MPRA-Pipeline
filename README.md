@@ -3,11 +3,11 @@
 Welcome to the TRE, massively parallel reporter assay, pipeline (TMP) github. This code was designed for users to be able to analyze their own fastq after performing MPRA studies using the TRE library from the english lab.
 
 
-## Downloading instructions
+## Downloading Instructions
 
 TMP has a few dependencies required to run. If you do not want to download these software, we are currenltly working on a docker container that will include all of the needed dependencies.
 
-### Required dependencies
+### Required Dependencies
 
 * [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
   * Miniconda will be used to download Starcode and Trim-Galore
@@ -25,12 +25,32 @@ TMP has a few dependencies required to run. If you do not want to download these
     * stringr
     * BiocParallel
     * MPRAnalyze
-* Python
+* Python 3.9.7
   * Python will require the following packages
     * numpy
     * pandas
     * biopython
+    
+### Set Up
 
+* General 
+  * Clone the repository into the desired location
+  * In the cloned repo go to the /barcode_map_data directory and unzip the finalBarcodeMap.csv.zip file
+* Setting up a conda environment
+  * Set up a new environment `conda create -y -n tmp_env`
+  * Activate your new environment `conda activate tmp_env`
+  * Run the following commands
+    * `conda install python=3.9.7`
+    * `conda install -c bioconda trim-galore`
+    * `conda install -c bioconda starcode`
+    
+## Running TMP
+
+### Workflow 
+
+The general work flow of TMP is as follows. For each of your runs, you will run TMP_empirical.py. This will generate the alpha results for all of the treatment typs of that particular run. After running TMP_empirical.py for each of your runs, run TMP_comparative.py to create and run comparisons. TMP_comparative.py allows you to run pairwise comparisons (a baseline vs. a stimulated treatement) and multivareate comparisons (more than 2 treatmens). The results from the comparisons will be found in the multi_comparitive_results/ and pairwise_comparitive_results/ directories.
+
+### Flags TMP_empirical.py 
 
 
 
