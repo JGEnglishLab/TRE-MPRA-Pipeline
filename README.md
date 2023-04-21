@@ -52,5 +52,80 @@ The general work flow of TMP is as follows. For each of your runs, you will run 
 
 ### Flags TMP_empirical.py 
 
+#### -r --run-name
+* Used to specify the name of the run
+* The same string you enter here will be seen in the /runs directory
+* The name may not incluc "_" or "/"
+* EXAMPLE "-r 19919"
+
+#### -p --path_to_fastq
+* Used to specify the path to the dirctory containing the fastq files for your run
+* The path may be absolute or direct
+* The fastq files inside the directory may be ".fq", ".fastq", ".fq.gz", or ".fastq.gz" files
+* EXAMPLE "-r ../sequence_data/19919_fq_files"
+
+#### -t --path_to_treatment_tsv
+- Specify the path to the treatment TSV
+- Treatment TSV is used to pair sample numbers with treatment names
+- The first column should correspond to sample numbers
+- The second column should correspond to treatment names
+- At least one DNA sample must be present for the pipeline to work. All DNA samples should simply be labeled as "DNA"
+- If you have multiple replicates of the same treatment they must be the same name
+- Do not include a header for your tsv file
+- See example of TSV below
+
+```
+1   Serum Free
+2   Serum Free
+3   Serum Free
+4   ATP
+5   Forskolin
+6   DNA
+7   DNA
+8   DNA
+```
+
+#### -dt --path_to_dna_tsv
+- Specify the path to the DNA TSV
+- DNA TSV is only needed if more than one DNA sample is present in treatment TSV
+- The DNA TSV is used to specify which DNA samples correspond to which RNA samples
+- Do not include a header for your tsv file
+- The first column corresponds to DNA sample numbers, the second column corresponds to RNA sample numbers
+- Each RNA sample must correspond to 1 and only 1 DNA sample
+- If you had a treatment TSV that looked like the one above (see -t) you would creat a DNA TSV like the one below
+```
+6   1
+6   2
+6   3
+7   4
+8   5
+```
+- This would mean the DNA from sample number 6 correspond to the Serum Free treatments, the DNA from sample 7 corresponds to the ATP treatment and the DNA from sample 8 corresponds to the Forskolin treatment.
+
+#### -sr --sample_number_regex
+- Used to specify a regex to detect sample numbers from fastq file names
+- By default, and number directly following "S" will be counted as the sample number.
+- If your file names looked like this 19919X42_220722_A00421_0459_AHH3JFDRX2_S42_L001_R2_001.fastq.gz
+- The default would call this file name to be sample number 42
+- If your file names looked like this 19919_R1_L001_sample_number_42.fastq.gz
+- You would put " -sr sample_number_" to automatically detect the 42 as the sample number 
+
+#### -d --path_to_DNA_fastq
+- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
+- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+
+### Flags TMP_comparative.py 
+
+#### -p --pairwise_tsv
+- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
+- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+
+#### -m --multi_tsv
+- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
+- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+
+#### -n --n_workers
+- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
+- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
 
 
