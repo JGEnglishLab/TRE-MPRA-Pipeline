@@ -117,8 +117,19 @@ The general work flow of TMP is as follows. For each of your runs, you will run 
 ### Flags TMP_comparative.py 
 
 #### -p --pairwise_tsv
-- Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
-- Use this flag to specify the path to the directory containing the fastq files for your DNA samples
+- Used to specify a path to a tsv file containg pairwise comparisons
+- If this flag is left blank TMP_comparative.py will ask for user input to create the TSV
+- If you make your own tsv you must use this header `id	base_treatment	stim_treatment	base_run	stim_run`
+- The ID column should just contain a unique integer for each row
+- 
+
+```
+id	base_treatment	stim_treatment	base_run	stim_run
+1	Serum Free	Marin 1	19664	20250
+2	ADRB2-2	ADRB2-5	20250	20250
+3	Marin 1	ADRB2-5	20250	20250
+4	FBS	Marin 1	19664	20250
+```
 
 #### -m --multi_tsv
 - Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
