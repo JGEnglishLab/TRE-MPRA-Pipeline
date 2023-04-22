@@ -12,8 +12,8 @@ TMP has a few dependencies required to run. If you do not want to download these
 * [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
   * Miniconda will be used to download Starcode and Trim-Galore
   * (See set up section for more details on setting up a conda environment)
-* [Starcode](https://anaconda.org/bioconda/starcode)
-* [Trim-galore](https://anaconda.org/bioconda/trim-galore)
+* [Starcode](https://anaconda.org/bioconda/starcode) (starcode-v1.4 2021-09-22)
+* [Trim-galore](https://anaconda.org/bioconda/trim-galore) (version 0.6.10)
 * [ea-utils](https://expressionanalysis.github.io/ea-utils/)
   * Once it has been downloaded and built (see additional [instructions](https://github.com/ExpressionAnalysis/ea-utils/blob/wiki/Compiling.md))you must add it to your path.
   * [Here](https://gist.github.com/nex3/c395b2f8fd4b02068be37c961301caa7) are some instructions on how to add something to your path if you are unfamiliar.
