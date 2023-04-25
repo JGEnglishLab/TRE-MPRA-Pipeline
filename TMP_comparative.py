@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-p', '--pairwise_tsv', dest="pairwise_comps", required=False)
 parser.add_argument('-m', '--multi_tsv', dest="multi_comps", required=False)
-parser.add_argument('-n', '--n_threads', dest="threads", required=False)
+parser.add_argument('-n', '--n_workers', dest="threads", required=False)
 
 args = parser.parse_args()
 
@@ -271,18 +271,18 @@ else: #If their multi-input file
 # *****************************************************************************
 # *****************************************************************************
 
-# if run_pairwise:
-# 	if not pairwise_comps: #IE they didn't enter a TSV
-# 		os.system(f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads}")
-# 	else: #They did enter a TSV
-# 		os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads}")
-#
-# if run_multi:
-# 	if not pairwise_comps: #IE they didn't enter a TSV
-# 		os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads}")
-# 	else: #They did enter a TSV
-# 		os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads}")
-#
+if run_pairwise:
+	if not pairwise_comps: #IE they didn't enter a TSV
+		os.system(f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads}")
+	else: #They did enter a TSV
+		os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads}")
+
+if run_multi:
+	if not pairwise_comps: #IE they didn't enter a TSV
+		os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads}")
+	else: #They did enter a TSV
+		os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads}")
+
 
 
 

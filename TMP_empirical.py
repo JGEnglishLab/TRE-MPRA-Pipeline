@@ -7,6 +7,8 @@ import time as t
 from datetime import datetime
 import subprocess
 
+print("Running TMP_empirical")
+
 
 def check_dir(path): #Checks a directory to make sure that fastq files exist in directory
 	for f in os.listdir(path):
@@ -179,10 +181,10 @@ parser.add_argument('-t', '--path_to_treatment_tsv', dest="treatment_tsv_path", 
 parser.add_argument('-dt', '--path_to_dna_tsv', dest="dna_tsv_path", required=False)
 parser.add_argument('-sr', '--sample_number_regex', dest="pattern", required=False)
 parser.add_argument('-d', '--path_to_DNA_fastq', dest="dna_path", required=False)
+parser.add_argument('-s', '--path_to_spikein_file', dest="spike_path", required=False)
 
 #TODO finish these flags
 parser.add_argument('-pr', '--read_pairing_regex', dest="read_pattern", required=False)
-parser.add_argument('-s', '--path_to_spikein_file', dest="spike_file", required=False)
 
 args = parser.parse_args()
 dir_name=args.dir_name
@@ -192,7 +194,46 @@ treatment_tsv_path=args.treatment_tsv_path
 dna_tsv_path=args.dna_tsv_path
 pattern=args.pattern
 dna_path=args.dna_path
+spike_path=args.spike_path
 
+###########################################################################
+###########################################################################
+#                CHECK SPIKE-IN FILE IF SPECIFIED
+###########################################################################
+###########################################################################
+
+#Will just be an empty list if no spike path is provided, or if all spikes are invalid
+valid_spikes = []
+if spike_path:
+
+	legal_path = os.path.exists(spike_path)
+
+	while not legal_path:
+		print(f"No spike-in file found at {spike_path}")
+		spike_path = input("Check path and enter it again: ")
+		legal_path = os.path.exists(spike_path)
+	print("Spike-in file found")
+	abs_spike_path = os.popen(f"readlink -f {spike_path}").read().strip()
+
+
+	spike_file = open(abs_spike_path, "r+")
+	nucleotides = 'ACTG'
+	for spike in spike_file:
+		spike = spike.strip()
+
+		#Errors will be dealt with in the R Scripts make_sample_files_SM.R and make_mpra_input_SM.R
+		#We just draw attention to the errors here
+		if len(spike) != 24:
+			print(f"Error with spike-in {spike}")
+			print("Length of spike-in must be 24")
+			print("This spike-in will be ignored. If this should not happen start over")
+
+		if not all(i in nucleotides for i in spike):
+			print(f"Error with spike-in {spike}")
+			print("Spike-ins must only contain A,T,G, and C characters")
+			print("This spike-in will be ignored. If this should not happen start over")
+
+	spike_file.close()
 
 ###########################################################################
 ###########################################################################
@@ -201,6 +242,7 @@ dna_path=args.dna_path
 ###########################################################################
 print_new_section()
 wd = os.getcwd()
+print(f"WORKING DIR {wd}")
 
 if not dir_name:
 	dir_name = input("Enter the name of the run: ")
@@ -685,7 +727,7 @@ rule make_mpra_input:
 		MPRA_INPUT_DIR + "treatment_id.csv",
 		MPRA_INPUT_DIR + "rna_depth.csv",
 		MPRA_INPUT_DIR + "col_annotations.csv"
-	shell: "Rscript " + SCRIPTS_DIR + "make_mpra_input_SM.R \u007binput.bcm\u007d \u007binput.ad\u007d \u007binput.rs\u007d \u007binput.ds\u007d \u007binput.md\u007d {abs_dna_tsv_path}"
+	shell: "Rscript " + SCRIPTS_DIR + "make_mpra_input_SM.R \u007binput.bcm\u007d \u007binput.ad\u007d \u007binput.rs\u007d \u007binput.ds\u007d \u007binput.md\u007d {abs_dna_tsv_path} {abs_spike_path}"
 
 rule make_dna_and_rna_samples:
 	message: "Creating images about run and generating dna and rna samples"
@@ -703,7 +745,7 @@ rule make_dna_and_rna_samples:
 		RNA_DNA_DIR + "all_data_filtered.csv", 
 		RNA_DNA_DIR + "dna_samples.csv", 
 		RNA_DNA_DIR + "rna_samples.csv", 
-	shell: "Rscript " + SCRIPTS_DIR + "make_sample_files_SM.R \u007binput.md\u007d \u007binput.bcm\u007d \u007binput.sc\u007d"
+	shell: "Rscript " + SCRIPTS_DIR + "make_sample_files_SM.R \u007binput.md\u007d \u007binput.bcm\u007d {abs_spike_path} \u007binput.sc\u007d"
 
 rule analyze_starcode:
 	message: "Analyzing Starcode"
@@ -778,10 +820,7 @@ if start == "y":
 		while not cores.isnumeric():
 			print("Must be a number")
 			cores = input("Enter the number of Cores to be used: ")
-		# os.chdir(f"./runs/{dir_name}")
-		# command = f"snakemake --directory ./runs/{dir_name} -j{cores}"
 		command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j8"
-		# snakemake -s runs/so6/Snakefile -d runs/so6/ -j8
 		os.system(command)
 
 
