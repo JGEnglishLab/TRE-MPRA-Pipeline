@@ -7,6 +7,17 @@ PATH_TO_STARCODE = "./star_code/"
 PATH_TO_STATS = "./run_descriptive_stats/"
 PATH_TO_RNA_DNA = "./rna_dna_samples/"
 
+
+check_valid_nucleotide <- function(string){
+  valid_nuc = c("A", "a", "T", "t", "G", "g", "C", "c")
+  for (i in strsplit(string, "")[[1]]){
+    if (!(i %in% valid_nuc)){
+      return(FALSE)
+    }
+  }
+  return(TRUE)
+}
+
 wd = getwd()
 
 # Get the command-line arguments.
@@ -14,14 +25,21 @@ args = commandArgs(trailingOnly=TRUE)
 
 #Read in meta data
 mData=read_csv(args[1])
-print("INPUT CSV")
-print(mData)
 
 #read in barcode map
 barcodeMap=read_csv(args[2])
 
-print("NUM ARGS")
-print(length(args))
+#read in spike-in file
+spike_ins = c()
+if (file.exists(args[3])){
+  spikeInFile=read_table(args[3], col_names = F)
+  for (i in spikeInFile$X1){
+    if (nchar(i) == 24 && check_valid_nucleotide(i)) {
+      
+      spike_ins = c(spike_ins, i)
+    }
+  }
+}
 
 addType <- function(collapsedAnalyzed, inpName){
   collapsedAnalyzed$name = inpName
@@ -33,10 +51,12 @@ addType <- function(collapsedAnalyzed, inpName){
   collapsedAnalyzed$type[collapsedAnalyzed$centroidInMapped == TRUE & collapsedAnalyzed$collapsedInMapped != "NULL" & collapsedAnalyzed$architecturesMatch == T] = "type1.2"
   
   #If it is the spike in, keep as type1
-  collapsedAnalyzed$type[collapsedAnalyzed$centroid == "TAAATATGCCTCAGCACCCTGCTG"] = "type1"
-  collapsedAnalyzed$type[collapsedAnalyzed$centroid == "AAGACGCGTCACAGACTTATAGAC"] = "type1"
-  collapsedAnalyzed$type[collapsedAnalyzed$centroid == "CGGAGACACTTAATAGCCTCTAAC"] = "type1"
-  collapsedAnalyzed$type[collapsedAnalyzed$centroid == "ATGTTAGTGAGTGTGCGAAGTAGG"] = "type1"
+  collapsedAnalyzed$type[collapsedAnalyzed$centroid %in% spike_ins] = "type1"
+  
+  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "TAAATATGCCTCAGCACCCTGCTG"] = "type1"
+  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "AAGACGCGTCACAGACTTATAGAC"] = "type1"
+  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "CGGAGACACTTAATAGCCTCTAAC"] = "type1"
+  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "ATGTTAGTGAGTGTGCGAAGTAGG"] = "type1"
   collapsedAnalyzed %>%
     mutate(
       collapse_stat = 0,
@@ -57,7 +77,7 @@ longFile <- data.frame(matrix(ncol = 14, nrow = 0))
 #We only keep type 1 and 1.2
 
 for (i in 1:length(args)){
-  if (i != 1 && i != 2){ #First two arguments are metadata and barcode map
+  if (i != 1 && i != 2 && i != 3){ #First three arguments are metadata, barcode map, spike in file
     print(args[i])
     curFile = read_tsv(args[i])
     sampleName = str_split(args[i], "_", n = Inf, simplify = FALSE)[[1]][4] #Gets the sample name ie "sample2"
@@ -65,7 +85,6 @@ for (i in 1:length(args)){
     print("SAMPLE NUMBER")
     print(sampleNumber)
     curFile = addType(curFile, sampleName)
-    # curFile$treatment = unique(mData[mData$sampleNumber == i - 2,]$treatment)
     curFile$treatment = unique(mData[mData$sampleNumber == sampleNumber,]$treatment)
     longFile = rbind(longFile,curFile)
   }
@@ -97,7 +116,7 @@ write_csv(longFile, paste0(PATH_TO_STATS,"pre_filtering_barcodes.csv"))
 # setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/full-test")
 # longFile = read_csv(paste0(PATH_TO_STATS,"pre_filtering_barcodes.csv"))
 # mData = read_csv("metaData.csv")
-# 
+
 # ####
 
 #Get all types
@@ -116,46 +135,34 @@ longFile %>% filter(type == "type1" | type == "type1.2") -> longFileFiltered
 
 longFileFiltered %>%
   group_by(name, treatment)%>%
-  summarise(totalCount = sum(totalCounts),
-            nrow = n()) -> summaryStats
+  summarise(totalReads = sum(totalCounts),
+            numberBarcodes = n()) -> summaryStats
 
 longFileFiltered %>%
-  filter(centroid == "TAAATATGCCTCAGCACCCTGCTG" |
-           centroid == "AAGACGCGTCACAGACTTATAGAC" |
-           centroid == "CGGAGACACTTAATAGCCTCTAAC" |
-           centroid == "ATGTTAGTGAGTGTGCGAAGTAGG")%>%
-  mutate(spike = case_when(centroid == "TAAATATGCCTCAGCACCCTGCTG" ~ "Spike1",
-                           centroid == "AAGACGCGTCACAGACTTATAGAC" ~ "Spike2",
-                           centroid == "CGGAGACACTTAATAGCCTCTAAC" ~ "Spike3",
-                           centroid == "ATGTTAGTGAGTGTGCGAAGTAGG" ~ "Spike4")) %>%
-  select(totalCounts, name, spike, treatment) -> spikeTotals
+  filter(centroid %in% spike_ins)%>%
+  mutate(spike = centroid) %>%
+  select(totalCounts, name, spike, treatment) %>%
+  rename(spikeInCount = totalCounts) -> spikeTotals
 
 #Join all data for a summary of the run.
 left_join(summaryStats, spikeTotals) %>%
-  pivot_wider(names_from = spike, values_from = totalCounts) %>%
-  mutate(Spike1_percent = Spike1 / totalCount,
-         Spike2_percent = Spike2 / totalCount,
-         Spike3_percent = Spike3 / totalCount,
-         Spike4_percent = Spike4 / totalCount) -> completeSummaryStats
+  mutate(spike_percent = spikeInCount/totalReads) -> completeSummaryStats
 
-
-completeSummaryStats[is.na(completeSummaryStats)] = 0
-completeSummaryStats$treatment <- factor(completeSummaryStats$treatment, levels=unique(mData$treatment))
-
-completeSummaryStats %>%
-  select(name,Spike1_percent, Spike2_percent, Spike3_percent, Spike4_percent) %>%
-  pivot_longer(!name, names_to = "spikeIn") %>%
-  left_join(completeSummaryStats) %>%
-  ggplot(aes(x = name, y = value, fill = spikeIn)) +
-  geom_bar(stat = "Identity", position="dodge") +
-  labs(x="Sample Name", y = "Spike Count / Total Count") +
-  facet_grid(cols = vars(treatment), scales = "free") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        strip.text.x = element_text(size = 5)) -> spike_in_stats
-
-png(paste0(PATH_TO_STATS,"spike_in_stats.png"))
-print(spike_in_stats)
-dev.off()
+if (length(spike_ins) > 0){
+  completeSummaryStats %>%
+    mutate(i = paste0(name,", ", treatment)) %>%
+    ggplot(aes(x = i, y = spike_percent, fill = spike)) +
+    geom_bar(stat = "Identity", position="dodge") +
+    labs(x="Sample", y = "Spike Reads / Total Reads") +
+    coord_flip() -> spike_in_stats
+  
+  png(paste0(PATH_TO_STATS,"spike_in_stats.png"))
+  print(spike_in_stats)
+  dev.off()
+} else{ #Create an empty png if there are no spikes
+  png::writePNG(array(0, dim = c(1,1,4)), paste0(PATH_TO_STATS,"spike_in_stats.png"))
+  
+}
 
 write_csv(completeSummaryStats, paste0(PATH_TO_STATS,"spike_in_stats.csv"))
 
@@ -209,12 +216,7 @@ left_join(rnaSamples, dna_data) %>%
          -collapse_stat,
          -totalCollapsed,
          -centroidInMapped) %>%
-  filter(barcode != "TAAATATGCCTCAGCACCCTGCTG", #Get rid of all the spike ins
-         barcode != "AAGACGCGTCACAGACTTATAGAC",
-         barcode != "CGGAGACACTTAATAGCCTCTAAC",
-         barcode != "ATGTTAGTGAGTGTGCGAAGTAGG")-> allDataFiltered
-
-
+  filter(barcode %in% spike_ins) -> allDataFiltered #Get rid of all the spike ins
 
 allDataFiltered %>%
   left_join(barcodeMap, by = "barcode") -> allDataFilteredJoined
@@ -226,19 +228,4 @@ allDataFilteredJoined %>%
 write_csv(allDataFilteredJoined, paste0(PATH_TO_RNA_DNA,"all_data_filtered.csv"))
 write_csv(dnaSamples, paste0(PATH_TO_RNA_DNA,"dna_samples.csv"))
 write_csv(rnaSamples, paste0(PATH_TO_RNA_DNA,"rna_samples.csv"))
-#
-# allDataFilteredJoined %>%
-#   pivot_wider(id_cols=c(barcode,architecture),names_from = treatment, values_from = c(rpm,totalCounts),  names_glue = "_{treatment}_{.value}") -> wide_all
-#
-# wide_all[is.na(wide_all)] = 0
-#
-# write_csv(wide_all,  paste0(RUN_NAME, "/all_data_filtered_joined_wide_no_sc_", RUN_NAME, ".csv"))
-#
-# dna_data %>%
-#   left_join(barcodeMap, by = "barcode") %>%
-#   mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%
-#   select(barcode, architecture, DNA_count, DNA_rpm)-> dna_csv
-#
-# write_csv(dna_csv,  paste0(RUN_NAME, "/dna_data_no_sc_", RUN_NAME, ".csv"))
-
 

@@ -8,12 +8,10 @@ wd = getwd()
 # Get the command-line arguments.
 args = commandArgs(trailingOnly=TRUE)
 
-#Read in meta data
+#Read in meta data (From snakemake)
 mData=read_csv(args[1])
-print("INPUT CSV")
-print(mData)
 
-#Read in barcode map
+#Read in barcode map (From snakemake)
 barcodeMap=read_csv(args[2])
 
 #Set up location where files will be written for starcode
@@ -56,7 +54,8 @@ longFile %>% pivot_wider(names_from = name, values_from = X2) %>%
   rename(barcode = X1) -> wideFile
 wideFile[is.na(wideFile)] <-0
 
-#Writes a tsv for each 
+#Writes a tsv for each sample
+#Now, each sample will be written in the PATH_TO_STARCODE dir with info a boolean column specifying if the barcode is in the map or not
 tables_written = 0
 for (i in unique(mData$sampleNumber)){
   tables_written = tables_written + 1
@@ -74,6 +73,5 @@ for (i in unique(mData$sampleNumber)){
   write.table(curFile, loc, sep = "\t", col.names = FALSE, quote = F, row.names = F)
 }
 
-print(tables_written)
-print(mData)
+
 write_csv(mData, "metaData.csv")
