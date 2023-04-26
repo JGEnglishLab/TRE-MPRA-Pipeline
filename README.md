@@ -110,6 +110,18 @@ The general work flow of TMP is as follows. For each of your runs, you will run 
 - If your file names looked like this 19919_R1_L001_sample_number_42.fastq.gz
 - You would put " -sr sample_number_" to automatically detect the 42 as the sample number 
 
+#### -s, --path_to_spikein_file
+- Used to specify a path to a file containing spike-in sequences
+- Spike-in file should contain one spike in per-line
+- Spike-in should be 24 nucleotides and only contain ATGC characters
+- See example of a spike-in file.
+```
+TAAATATGCCTCAGCACCCTGCTG
+AAGACGCGTCACAGACTTATAGAC
+CGGAGACACTTAATAGCCTCTAAC
+ATGTTAGTGAGTGTGCGAAGTAGG
+```
+
 #### -d --path_to_DNA_fastq
 - Sometimes you may not keep the DNA fastq files in the same location that your RNA fastq files
 - Use this flag to specify the path to the directory containing the fastq files for your DNA samples
