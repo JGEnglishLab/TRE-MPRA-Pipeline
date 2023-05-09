@@ -3,6 +3,16 @@ library(dplyr)
 library(testit)
 PATH_TO_MPRA_INPUT = "./mpra_input/"
 
+check_valid_nucleotide <- function(string){
+  valid_nuc = c("A", "a", "T", "t", "G", "g", "C", "c")
+  for (i in strsplit(string, "")[[1]]){
+    if (!(i %in% valid_nuc)){
+      return(FALSE)
+    }
+  }
+  return(TRUE)
+}
+
 wd = getwd()
 
 # Get the command-line arguments.
@@ -15,18 +25,30 @@ rnaSamples=read_csv(args[3])
 dnaSamples=read_csv(args[4])
 mData=read_csv(args[5])
 
+#read in spike-in file
+spike_ins = c()
+if (file.exists(args[7])){
+  spikeInFile=read_table(args[7], col_names = F)
+  for (i in spikeInFile$X1){
+    if (nchar(i) == 24 && check_valid_nucleotide(i)) {
+
+      spike_ins = c(spike_ins, i)
+    }
+  }
+}
+
 RUN_NAME = unique(mData$run_name)
 
 # #####
 # #DELETE LATER!
 # setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/19664---17-03-2023--11-11-08")
 # 
-barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
-allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
-rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
-dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
-mData = read_csv("./metaData.csv")
-# #####
+# barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
+# allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
+# rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
+# dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
+# mData = read_csv("./metaData.csv")
+#####
 
 # #Get DNA depth factor
 # dnaSamples %>% 
@@ -73,10 +95,7 @@ dna_top %>%
 
 #Join with RNA
 rnaSamples %>% 
-  filter(barcode != "TAAATATGCCTCAGCACCCTGCTG", #Get rid of all the spike ins
-         barcode != "AAGACGCGTCACAGACTTATAGAC",
-         barcode != "CGGAGACACTTAATAGCCTCTAAC",
-         barcode != "ATGTTAGTGAGTGTGCGAAGTAGG") %>%
+  filter(!(barcode %in% spike_ins)) %>%
   select(barcode, totalCounts, name, treatment) %>%
   left_join(barcodeMap, by = "barcode") %>%
   mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%

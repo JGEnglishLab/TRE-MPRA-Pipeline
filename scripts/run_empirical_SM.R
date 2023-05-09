@@ -11,7 +11,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 ####
 #DELETE AND CHANGE LATER!
-# setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/saved")
+# setwd("/Volumes/external_disk/english_lab/TRE-MPRA/runs/run1")
 # rna_counts = read_csv("./mpra_input/rna_counts.csv")
 # dna_counts = read_csv("./mpra_input/dna_counts.csv")
 # treatment_ids = read_csv("./mpra_input/treatment_id.csv")
