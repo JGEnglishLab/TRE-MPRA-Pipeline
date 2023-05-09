@@ -176,7 +176,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-r', '--run_name', dest="dir_name", required=False)
 parser.add_argument('-p', '--path_to_fq', dest="fastq_path", required=False)
-parser.add_argument('-j', '--join_fastq', dest="merge", required=False)
+# parser.add_argument('-j', '--join_fastq', dest="merge", required=False)
 parser.add_argument('-t', '--path_to_treatment_tsv', dest="treatment_tsv_path", required=False)
 parser.add_argument('-dt', '--path_to_dna_tsv', dest="dna_tsv_path", required=False)
 parser.add_argument('-sr', '--sample_number_regex', dest="pattern", required=False)
@@ -189,7 +189,7 @@ parser.add_argument('-pr', '--read_pairing_regex', dest="read_pattern", required
 args = parser.parse_args()
 dir_name=args.dir_name
 fastq_path=args.fastq_path
-merge=args.merge
+# merge=args.merge
 treatment_tsv_path=args.treatment_tsv_path
 dna_tsv_path=args.dna_tsv_path
 pattern=args.pattern

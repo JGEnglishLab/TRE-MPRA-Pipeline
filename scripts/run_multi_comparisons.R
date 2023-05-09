@@ -66,14 +66,13 @@ rna_counts %>% remove_rownames %>% column_to_rownames(var="architecture") -> rna
 for (id_iter in unique(comps$id)){
   
   comps %>% filter(id == id_iter) -> cur_comps
-  param <- BatchtoolsParam(workers = 24)
-  
-  comparisons %>% 
-    filter(id == id_iter) -> cur_row
-  
-  name = cur_row$name 
-  treatments = cur_row$comp_list
-  
+
+  # comparisons %>%
+  #   filter(id == id_iter) -> cur_row
+  #
+  # name = cur_row$name
+  # treatments = cur_row$comp_list
+  #
   regex = c()
 
   name_csv = RESULTS_DIR
