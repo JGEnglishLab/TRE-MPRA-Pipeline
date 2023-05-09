@@ -50,7 +50,7 @@ for d in os.listdir("./runs"): #Loop through directories (ie run names)
 			for t in cur_treatments:
 				if t != "DNA":
 					treatment_list.append(t + " || " + d)
-					run_treatment_dict[d] = t
+					run_treatment_dict[t] = d
 				
 treatment_dict = {} #Used for user manually creating comparisons
 counter = 0
@@ -156,20 +156,46 @@ else: #Check their pairwise input file
 
 		id_list.append(cur_id)
 
-		try:
-			if run_treatment_dict[cur_base_run] != cur_base_treatment:
-				print(f"error in pairwise tsv on line \"{line}\" \n{cur_base_treatment} doesn't belong to the {cur_base_run} run.")
-				exit()
-		except KeyError:
-			print(f"error in pairwise tsv on line \"{line}\" \n{cur_base_run} doesn't exist")
+		#Here, check to see if the treatment and run names were detected in runs/ and if the treatments and runs match
+
+		base_run_exists = False
+		base_treatment_exists = False
+		stim_run_exists = False
+		stim_treatment_exists = False
+		base_run_treatment_match = False
+		stim_run_treatment_match = False
+
+		for i in treatment_list:
+
+			if cur_stim_treatment == i.split(" || ")[0]:
+				stim_treatment_exists = True
+			if cur_base_treatment == i.split(" || ")[0]:
+				base_treatment_exists = True
+
+			if cur_stim_run == i.split(" || ")[1]:
+				stim_run_exists = True
+			if cur_base_run == i.split(" || ")[1]:
+				base_run_exists = True
+
+			if cur_stim_treatment == i.split(" || ")[0] and cur_stim_run == i.split(" || ")[1]:
+				stim_run_treatment_match = True
+			if cur_base_treatment == i.split(" || ")[0] and cur_base_run == i.split(" || ")[1]:
+				base_run_treatment_match = True
+
+		if not base_run_treatment_match:
+			print(f"error in pairwise tsv on line \"{line}\" \n{cur_base_treatment} doesn't belong to the {cur_base_run} run.")
+			if not base_run_exists:
+				print(f"error in pairwise tsv on line \"{line}\" \n{cur_base_run} run doesn't exist. Check to make sure you entered the name correctly.")
+			if not base_treatment_exists:
+				print(f"error in pairwise tsv on line \"{line}\" \n{cur_base_treatment} treatment doesn't exist. Check to make sure you entered the name correctly.")
 			exit()
 
-		try:
-			if run_treatment_dict[cur_stim_run] != cur_stim_treatment:
-				print(f"error in pairwise tsv on line \"{line}\" \n{cur_stim_treatment} doesn't belong to the {cur_stim_run} run.")
-				exit()
-		except KeyError:
-			print(f"error in pairwise tsv on line \"{line}\" \n{cur_stim_run} doesn't exist")
+		if not stim_run_treatment_match:
+			print(f"error in pairwise tsv on line \"{line}\" \n{cur_stim_treatment} doesn't belong to the {cur_stim_run} run.")
+			if not stim_run_exists:
+				print(f"error in pairwise tsv on line \"{line}\" \n{cur_stim_run} run doesn't exist. Check to make sure you entered the name correctly.")
+			if not stim_treatment_exists:
+				print(f"error in pairwise tsv on line \"{line}\" \n{cur_stim_treatment} treatment doesn't exist. Check to make sure you entered the name correctly.")
 			exit()
 
 	run_pairwise = True
@@ -256,12 +282,33 @@ else: #If their multi-input file
 		if not cur_id.isnumeric():
 			print(f"error in multi tsv on line \"{line}\" \nid column must be numeric")
 			exit()
-		try:
-			if run_treatment_dict[cur_run] != cur_treament:
-				print(f"error in multi tsv on line \"{line}\" \n{cur_treament} doesn't belong to the {cur_run} run.")
-				exit()
-		except KeyError:
-			print(f"error in multi tsv on line \"{line}\" \n{cur_run} doesn't exist")
+
+		run_exists = False
+		treatment_exists = False
+		run_treatment_match = False
+
+		for i in treatment_list:
+
+			if cur_treament == i.split(" || ")[0]:
+				treatment_exists = True
+
+			if cur_run == i.split(" || ")[1]:
+				run_exists = True
+
+			if cur_treament == i.split(" || ")[0] and cur_run == i.split(" || ")[1]:
+				run_treatment_match = True
+
+
+		if not run_treatment_match:
+			print(f"error in multi tsv on line \"{line}\" \n{cur_treament} doesn't belong to the {cur_run} run.")
+			if not run_exists:
+				print(f"error in multi tsv on line \"{line}\" \n{cur_run} run doesn't exist. Check to make sure you entered the name correctly.")
+			if not treatment_exists:
+				print(f"error in multi tsv on line \"{line}\" \n{cur_treament} treatment doesn't exist. Check to make sure you entered the name correctly.")
+			exit()
+
+
+
 	run_multi = True
 
 
@@ -278,7 +325,7 @@ if run_pairwise:
 		os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads}")
 
 if run_multi:
-	if not pairwise_comps: #IE they didn't enter a TSV
+	if not multi_comps: #IE they didn't enter a TSV
 		os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads}")
 	else: #They did enter a TSV
 		os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads}")
