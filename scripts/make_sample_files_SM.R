@@ -7,6 +7,8 @@ PATH_TO_STARCODE = "./star_code/"
 PATH_TO_STATS = "./run_descriptive_stats/"
 PATH_TO_RNA_DNA = "./rna_dna_samples/"
 
+ #l = c("star_code/analyzed_out_sample43_mapped_sc_out.tsv", "star_code/analyzed_out_sample2_mapped_sc_out.tsv", "star_code/analyzed_out_sample42_mapped_sc_out.tsv", "star_code/analyzed_out_sample8_mapped_sc_out.tsv", "star_code/analyzed_out_sample5_mapped_sc_out.tsv", "star_code/analyzed_out_sample1_mapped_sc_out.tsv", "star_code/analyzed_out_sample6_mapped_sc_out.tsv", "star_code/analyzed_out_sample3_mapped_sc_out.tsv")
+
 
 check_valid_nucleotide <- function(string){
   valid_nuc = c("A", "a", "T", "t", "G", "g", "C", "c")
@@ -216,7 +218,7 @@ left_join(rnaSamples, dna_data) %>%
          -collapse_stat,
          -totalCollapsed,
          -centroidInMapped) %>%
-  filter(barcode %in% spike_ins) -> allDataFiltered #Get rid of all the spike ins
+  filter(!(barcode %in% spike_ins)) -> allDataFiltered #Get rid of all the spike ins
 
 allDataFiltered %>%
   left_join(barcodeMap, by = "barcode") -> allDataFilteredJoined

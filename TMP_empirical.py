@@ -234,6 +234,8 @@ if spike_path:
 			print("This spike-in will be ignored. If this should not happen start over")
 
 	spike_file.close()
+else:
+	abs_spike_path = "None"
 
 ###########################################################################
 ###########################################################################
