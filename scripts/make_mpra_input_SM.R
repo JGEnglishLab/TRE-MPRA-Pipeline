@@ -41,13 +41,13 @@ RUN_NAME = unique(mData$run_name)
 
 # #####
 # #DELETE LATER!
-# setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/19664---17-03-2023--11-11-08")
+#setwd("/Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/runs/run1t")
 # 
-# barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
-# allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
-# rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
-# dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
-# mData = read_csv("./metaData.csv")
+#barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
+#allDataFilteredJoined = read_csv("rna_dna_samples/all_data_filtered.csv")
+#rnaSamples = read_csv("rna_dna_samples/rna_samples.csv")
+#dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
+#mData = read_csv("./metaData.csv")
 #####
 
 # #Get DNA depth factor
@@ -106,7 +106,7 @@ if (args[6] != "None"){ #If a sixth argument is passed in that is not "None" we 
   dna_sample_map = read_tsv(args[6], col_names = F)
   ###
   #DELETE LATER
-  # dna_sample_map = read_tsv("../../../20250_dna_map_full.tsv", col_names = F)
+  #dna_sample_map = read_tsv("/Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/test_data/input/run1_dna_map.tsv", col_names = F)
   ####
   dna_sample_map$X1 = paste0("sample",dna_sample_map$X1) # X1 is DNA name
   dna_sample_map$X2 = paste0("sample",dna_sample_map$X2) # X2 is RNA name
