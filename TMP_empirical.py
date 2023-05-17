@@ -507,61 +507,80 @@ paired_files = []
 # These two will contain un-altered filenames
 un_paired_files_raw = []
 paired_files_raw = []
-while len(files) != 0:
-	if count > max_iter:
-		break
-	count+=1
-	if bool(re.search(r"[r|R]1", files[0])):
-		file1 = files[0]
-		paired = False
 
-		for i in files:
-			if diff_letters(i,file1) == 1 and diff_reads(i, file1):  #Make sure that the only difference is between the R1 and R2
-				paired = True
-				file2 = i
-				files.remove(file1)
-				files.remove(file2)
+file1s = []
+file2s = []
+non_matching_files = []
 
-				diff_letters(i, file1)
-				diff_reads(i, file1)
+for file in files:
+	if bool(re.search(r"[r|R]1", file)):
+		file1s.append(file)
+	elif bool(re.search(r"[r|R]2", file)):
+		file2s.append(file)
+	else:
+		non_matching_files.append(file)
 
-				paired_files_raw.append(file1)
-				paired_files_raw.append(file2)
+file1s_copy = file1s.copy()
+file2s_copy = file2s.copy()
 
-				#Get the paths to the files
-				file1_path = raw_file_paths[file1]
-				file2_path = raw_file_paths[file2]
-				file_info.write(f"{file1_path + file1},True\n")
-				file_info.write(f"{file2_path + file2},True\n")
 
-				#The file names will have the .24bp_5prim added from trimGalore
-				file1 = file1.split('.', 1)[0] + ".24bp_5prime." + file1.split('.', 1)[1]
-				file2 = file2.split('.', 1)[0] + ".24bp_5prime." + file2.split('.', 1)[1]
-				# trim_galore subs fq for fastq. So we need to change the file names
-				file1 = re.sub(".fastq", ".fq", file1)
-				file2 = re.sub(".fastq", ".fq", file2)
+for file1 in file1s:
+	if file1 == "run1X42_220722_A00421_0459_AHH3JFDRX2_S42_L001_R1_001_subset.fastq.gz":
+		print("STOP!")
+	for file2 in file2s:
+		if diff_letters(file1, file2) == 1 and diff_reads(file1, file2):
+			file1s_copy.remove(file1)
+			file2s_copy.remove(file2)
 
-				finalName = re.sub(r"[r|R]1", "R1-2", file1)
-				finalName = finalName.split(".")[0]
-				fastq_join_name = f"{finalName}_%.fq"
-				f.write(f"{file1},{file2},{fastq_join_name}\n")
-				print(file1, "\t", file2, "\t", fastq_join_name)
-
-				#PEAR adds .assembled to end of filename
-				#count_barcodes_SM.py changes the .fq or .fastq extension to .csv
-				finalName = f"{finalName}_join.csv"
-				paired_files.append(finalName)
-				break
-
-		if not paired:
+			paired_files_raw.append(file1)
+			paired_files_raw.append(file2)
+			# Get the paths to the files
 			file1_path = raw_file_paths[file1]
-			file_info.write(f"{file1_path + file1},False\n")
+			file2_path = raw_file_paths[file2]
+			file_info.write(f"{file1_path + file1},True\n")
+			file_info.write(f"{file2_path + file2},True\n")
 
-			un_paired_files_raw.append(file1)
-			files.remove(file1)
-			file1 = re.sub(".f(q|astq)(.gz)?", ".csv", file1)
-			un_paired_files.append(file1)
+			# The file names will have the .24bp_5prim added from trimGalore
+			file1 = file1.split('.', 1)[0] + ".24bp_5prime." + file1.split('.', 1)[1]
+			file2 = file2.split('.', 1)[0] + ".24bp_5prime." + file2.split('.', 1)[1]
+			# trim_galore subs fq for fastq. So we need to change the file names
+			file1 = re.sub(".fastq", ".fq", file1)
+			file2 = re.sub(".fastq", ".fq", file2)
 
+			finalName = re.sub(r"[r|R]1", "R1-2", file1)
+			finalName = finalName.split(".")[0]
+			fastq_join_name = f"{finalName}_%.fq"
+			f.write(f"{file1},{file2},{fastq_join_name}\n")
+			print(file1, "\t", file2, "\t", fastq_join_name)
+
+			finalName = f"{finalName}_join.csv"
+			paired_files.append(finalName)
+
+for file1 in file1s_copy:
+	file1_path = raw_file_paths[file1]
+	file_info.write(f"{file1_path + file1},False\n")
+
+	un_paired_files_raw.append(file1)
+	files.remove(file1)
+	file1 = re.sub(".f(q|astq)(.gz)?", ".csv", file1)
+	un_paired_files.append(file1)
+
+if len(file2s_copy) != 0:
+	print("Read2 files detected without a matching Read1 file")
+	print("These files will be ignored:")
+	for file2 in file2s_copy:
+		print(f"\t{file2}")
+
+
+
+for non_match_file in non_matching_files:
+	file1_path = raw_file_paths[non_match_file]
+	file_info.write(f"{file1_path + non_match_file},False\n")
+
+	un_paired_files_raw.append(non_match_file)
+	files.remove(non_match_file)
+	non_match_file = re.sub(".f(q|astq)(.gz)?", ".csv", non_match_file)
+	un_paired_files.append(non_match_file)
 
 
 f.close()
@@ -571,7 +590,7 @@ if len(un_paired_files) == 0:
 	print("\nAuto detected all pairs!")
 	merge = True
 
-elif len(un_paired_files) == max_iter:
+elif len(file1) == len(files):
 	print("\nNo pairs were auto detected!")
 	print("In order to pair files together the only difference in the file names should be between \"R1\" and \"R2\"")
 	print("The patterns \"R1\" and \"R2\" may only be present once in each file name.")
