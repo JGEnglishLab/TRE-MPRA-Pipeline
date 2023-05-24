@@ -83,12 +83,12 @@ for (id_iter in unique(comps$id)){
     cur_t_id = (treatment_ids %>% filter(run == cur_run, treatment == cur_treatment))$t_id
     regex = paste0(regex, cur_t_id, "\\.|")
     
-    cur_name = paste0(cur_treatment,"-",cur_run,"__")
+    cur_name = paste0(cur_treatment,"__",cur_run,"_vs_")
     name_csv = paste0(name_csv,cur_name)
   }
   regex = str_sub(regex,1,-2) #Trim off the last char because it's a | (or)
   name_csv = gsub(' ','_',name_csv)
-  name_csv = str_sub(name_csv,1,-3) #Trim off the last 2 char because it's __
+  name_csv = str_sub(name_csv,1,-5) #Trim off the last 2 char because it's _vs_
 
   grep(regex, colnames(rna_counts)) -> split_indices
   cur_depth_cols <- colnames(rna_counts[split_indices])

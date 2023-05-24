@@ -80,7 +80,7 @@ for (id_iter in comps$id){
   stim_t_id = (treatment_ids %>% filter(run == stim_run, treatment == stim_treatment))$t_id
   regex = paste0(base_t_id,"\\.|",stim_t_id,"\\.") 
   
-  name_csv = paste0(RESULTS_DIR, base_treatment, "-",base_run ,"__",stim_treatment, "-",stim_run)
+  name_csv = paste0(RESULTS_DIR, base_treatment, "__",base_run ,"_vs_",stim_treatment, "__",stim_run)
   name_csv = gsub(' ','_',name_csv)
   
   grep(regex, colnames(rna_counts)) -> split_indices

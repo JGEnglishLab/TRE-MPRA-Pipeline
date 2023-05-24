@@ -7,9 +7,6 @@ PATH_TO_STARCODE = "./star_code/"
 PATH_TO_STATS = "./run_descriptive_stats/"
 PATH_TO_RNA_DNA = "./rna_dna_samples/"
 
- #l = c("star_code/analyzed_out_sample43_mapped_sc_out.tsv", "star_code/analyzed_out_sample2_mapped_sc_out.tsv", "star_code/analyzed_out_sample42_mapped_sc_out.tsv", "star_code/analyzed_out_sample8_mapped_sc_out.tsv", "star_code/analyzed_out_sample5_mapped_sc_out.tsv", "star_code/analyzed_out_sample1_mapped_sc_out.tsv", "star_code/analyzed_out_sample6_mapped_sc_out.tsv", "star_code/analyzed_out_sample3_mapped_sc_out.tsv")
-
-
 check_valid_nucleotide <- function(string){
   valid_nuc = c("A", "a", "T", "t", "G", "g", "C", "c")
   for (i in strsplit(string, "")[[1]]){
@@ -55,10 +52,6 @@ addType <- function(collapsedAnalyzed, inpName){
   #If it is the spike in, keep as type1
   collapsedAnalyzed$type[collapsedAnalyzed$centroid %in% spike_ins] = "type1"
   
-  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "TAAATATGCCTCAGCACCCTGCTG"] = "type1"
-  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "AAGACGCGTCACAGACTTATAGAC"] = "type1"
-  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "CGGAGACACTTAATAGCCTCTAAC"] = "type1"
-  # collapsedAnalyzed$type[collapsedAnalyzed$centroid == "ATGTTAGTGAGTGTGCGAAGTAGG"] = "type1"
   collapsedAnalyzed %>%
     mutate(
       collapse_stat = 0,
@@ -79,7 +72,7 @@ longFile <- data.frame(matrix(ncol = 14, nrow = 0))
 #We only keep type 1 and 1.2
 
 for (i in 1:length(args)){
-  if (i != 1 && i != 2 && i != 3){ #First three arguments are metadata, barcode map, spike in file
+  if (i != 1 && i != 2 && i != 3){ #First three arguments are metadata, barcode map, spike in file, the rest are starcode files
     print(args[i])
     curFile = read_tsv(args[i])
     sampleName = str_split(args[i], "_", n = Inf, simplify = FALSE)[[1]][4] #Gets the sample name ie "sample2"
@@ -114,12 +107,10 @@ dev.off()
 
 write_csv(longFile, paste0(PATH_TO_STATS,"pre_filtering_barcodes.csv"))
 
-# #DELETE LATER
+# For testing
 # setwd("/Volumes/external_disk/english_lab/mpra_snake_make/runs/full-test")
 # longFile = read_csv(paste0(PATH_TO_STATS,"pre_filtering_barcodes.csv"))
 # mData = read_csv("metaData.csv")
-
-# ####
 
 #Get all types
 longFile %>%
