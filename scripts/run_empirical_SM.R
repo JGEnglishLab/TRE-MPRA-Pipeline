@@ -10,7 +10,7 @@ wd = getwd()
 args = commandArgs(trailingOnly=TRUE)
 
 ####
-#DELETE AND CHANGE LATER!
+# For testing
 # setwd("/Volumes/external_disk/english_lab/TRE-MPRA/runs/run1")
 # rna_counts = read_csv("./mpra_input/rna_counts.csv")
 # dna_counts = read_csv("./mpra_input/dna_counts.csv")
@@ -25,6 +25,11 @@ treatment_ids = read_csv(args[3])
 col_ano = read_csv(args[4])
 rna_depth = read_csv(args[5])$rna_depth
 dna_depth = read_csv(args[6])$dna_depth
+mData = read_csv(args[7])
+
+RUN_NAME = unique(mData$run_name)
+
+
 
 controls = grepl('^Spacer|^Scramble', rna_counts$architecture)
 
@@ -100,4 +105,4 @@ all_emp_results_correct_names %>%
   select(-matches("^controls_cols*")) -> all_emp_results_correct_names
 
 
-write_csv(all_emp_results_correct_names, "empirical_results.csv")
+write_csv(all_emp_results_correct_names, paste0(RUN_NAME, "__empirical_results.csv"))

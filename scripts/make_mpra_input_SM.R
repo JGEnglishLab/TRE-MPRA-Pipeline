@@ -40,7 +40,7 @@ if (file.exists(args[7])){
 RUN_NAME = unique(mData$run_name)
 
 # #####
-# #DELETE LATER!
+# For testing
 #setwd("/Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/runs/run1t")
 # 
 #barcodeMap = read_csv("../../barcode_map_data/finalBarcodeMap.csv")
@@ -49,13 +49,6 @@ RUN_NAME = unique(mData$run_name)
 #dnaSamples = read_csv("rna_dna_samples/dna_samples.csv")
 #mData = read_csv("./metaData.csv")
 #####
-
-# #Get DNA depth factor
-# dnaSamples %>% 
-#   group_by(name) %>%
-#   summarise(uq = quantile(totalCounts, .75)) -> df
-# df$run_name = RUN_NAME
-# write_csv(df, paste0(PATH_TO_MPRA_INPUT, "dna_depth.csv"))
 
 #Get a unique id for each treatment
 run_name = unique(mData$run_name)
@@ -105,7 +98,7 @@ rnaSamples %>%
 if (args[6] != "None"){ #If a sixth argument is passed in that is not "None" we have > 1 dna sample
   dna_sample_map = read_tsv(args[6], col_names = F)
   ###
-  #DELETE LATER
+  #For testing
   #dna_sample_map = read_tsv("/Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/test_data/input/run1_dna_map.tsv", col_names = F)
   ####
   dna_sample_map$X1 = paste0("sample",dna_sample_map$X1) # X1 is DNA name

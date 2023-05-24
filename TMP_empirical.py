@@ -119,7 +119,13 @@ def check_treatment_tsv(tsv):
 			return False, treatments, sample_list, "Treatment TSV must have two columns separated by a tab"
 
 		if not sample_number.isnumeric():
-			return False, treatments, sample_list,  "Treatment TSV must contain numeric sample numbers in first column"
+			return False, treatments, sample_list,  "Treatment TSV must contain numeric sample numbers in first column."
+
+		if "_" in treatment_type or "/" in treatment_type or "|" in treatment_type:
+			return False, treatments, sample_list,  "Treatments may not contain \"/\", \"|\", \"_\" characters."
+
+		if bool(re.search(r"\s{2,99}", treatment_type)):
+			return False, treatments, sample_list, "Treatments may not contain more than one space"
 
 		if sample_number in sample_list:
 			return False, treatments, sample_list, "Treatment TSV may not contain the same sample number more than once."
@@ -175,21 +181,16 @@ parser = argparse.ArgumentParser(
                     description = 'Sets up and writes a snakemake workflow to run MPRAnalyze')
 
 parser.add_argument('-r', '--run_name', dest="dir_name", required=False)
-parser.add_argument('-p', '--path_to_fq', dest="fastq_path", required=False)
-# parser.add_argument('-j', '--join_fastq', dest="merge", required=False)
+parser.add_argument('-f', '--path_to_fq', dest="fastq_path", required=False)
 parser.add_argument('-t', '--path_to_treatment_tsv', dest="treatment_tsv_path", required=False)
 parser.add_argument('-dt', '--path_to_dna_tsv', dest="dna_tsv_path", required=False)
 parser.add_argument('-sr', '--sample_number_regex', dest="pattern", required=False)
 parser.add_argument('-d', '--path_to_DNA_fastq', dest="dna_path", required=False)
 parser.add_argument('-s', '--path_to_spikein_file', dest="spike_path", required=False)
 
-#TODO finish these flags
-parser.add_argument('-pr', '--read_pairing_regex', dest="read_pattern", required=False)
-
 args = parser.parse_args()
 dir_name=args.dir_name
 fastq_path=args.fastq_path
-# merge=args.merge
 treatment_tsv_path=args.treatment_tsv_path
 dna_tsv_path=args.dna_tsv_path
 pattern=args.pattern
@@ -367,8 +368,6 @@ if len(DNA_sample_num) > 1: #Multiple DNA sample detected.
 		DNA_tsv = open(dna_tsv_path, "r")
 		correct_tsv, error_msg = check_DNA_tsv(DNA_tsv, DNA_sample_num, RNA_sample_num)
 	print(error_msg)
-	# abs_dna_tsv_path = os.system(f"readlink -f {dna_tsv_path}")
-	# abs_dna_tsv_path = subprocess.Popen(f"readlink -f {dna_tsv_path}")
 	abs_dna_tsv_path = os.popen(f"readlink -f {dna_tsv_path}").read().strip()
 
 else:
@@ -498,8 +497,6 @@ numPaired = 0
 
 print("Here are the auto detected pairs\n")
 print("read1,\tread2,\tjoined name")
-count = 0
-max_iter = len(files)
 #These two will be used for meta_data.csv
 #They will contain the altered final names
 un_paired_files = []
@@ -525,8 +522,6 @@ file2s_copy = file2s.copy()
 
 
 for file1 in file1s:
-	if file1 == "run1X42_220722_A00421_0459_AHH3JFDRX2_S42_L001_R1_001_subset.fastq.gz":
-		print("STOP!")
 	for file2 in file2s:
 		if diff_letters(file1, file2) == 1 and diff_reads(file1, file2):
 			file1s_copy.remove(file1)
@@ -561,7 +556,6 @@ for file1 in file1s_copy:
 	file_info.write(f"{file1_path + file1},False\n")
 
 	un_paired_files_raw.append(file1)
-	files.remove(file1)
 	file1 = re.sub(".f(q|astq)(.gz)?", ".csv", file1)
 	un_paired_files.append(file1)
 
@@ -578,7 +572,6 @@ for non_match_file in non_matching_files:
 	file_info.write(f"{file1_path + non_match_file},False\n")
 
 	un_paired_files_raw.append(non_match_file)
-	files.remove(non_match_file)
 	non_match_file = re.sub(".f(q|astq)(.gz)?", ".csv", non_match_file)
 	un_paired_files.append(non_match_file)
 
@@ -686,7 +679,6 @@ if tsv_sample_numbers != all_sample_numbers:
 
 print_new_section()
 
-
 f = open(f"./runs/{dir_name}/metaData.csv", "w+")
 f.write("fileName,sampleNumber,treatment,run_name\n")
 
@@ -728,8 +720,10 @@ rule create_alphas:
 		ddv = MPRA_INPUT_DIR + "dna_depth_vals.csv",
 		ti = MPRA_INPUT_DIR + "treatment_id.csv",
 		ca = MPRA_INPUT_DIR + "col_annotations.csv",
-	output: "empirical_results.csv"
-	shell: "Rscript " + SCRIPTS_DIR + "run_empirical_SM.R \u007binput.rc\u007d \u007binput.dc\u007d \u007binput.ti\u007d \u007binput.ca\u007d \u007binput.rdv\u007d \u007binput.ddv\u007d"
+		md = "metaData.csv",
+
+	output: "{dir_name}__empirical_results.csv"
+	shell: "Rscript " + SCRIPTS_DIR + "run_empirical_SM.R \u007binput.rc\u007d \u007binput.dc\u007d \u007binput.ti\u007d \u007binput.ca\u007d \u007binput.rdv\u007d \u007binput.ddv\u007d \u007binput.md\u007d"
 
 rule make_mpra_input:
 	message: "Creating input for MPRAnalyze"
@@ -843,17 +837,3 @@ if start == "y":
 			cores = input("Enter the number of Cores to be used: ")
 		command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j8"
 		os.system(command)
-
-
-
-
-#TODO
-# Add regex for r[2|1] (line 459)
-# Check multi dna
-# Fix R scripts to use multi DNA (you might need to write it to a tsv or just use user tsv as input)
-# Spike in stuff (Change R script too)
-# Check to see if the entered sample numbers (TSV) match the found sample numbers (looping through files/regex)
-
-
-
-
