@@ -11,6 +11,8 @@ args = commandArgs(trailingOnly=TRUE)
 
 comps = read_tsv(args[1])
 param <- BatchtoolsParam(workers = args[2])
+runs_dir = args[3]
+
 
 all_runs = unique(c(comps$base_run, comps$stim_run))
 
@@ -26,23 +28,23 @@ count = 0
 for (i in all_runs){
   count = count + 1
   if (count == 1){ #If its the first iteration, just initialize the dataframe
-    rna_counts = read_csv(paste0("runs/",i,"/mpra_input/rna_counts.csv"))
-    dna_counts = read_csv(paste0("runs/",i,"/mpra_input/dna_counts.csv"))
-    treatment_ids = read_csv(paste0("runs/",i,"/mpra_input/treatment_id.csv"))
-    rna_depth_factor = read_csv(paste0("runs/",i,"/mpra_input/rna_depth.csv"))
-    dna_depth_factor = read_csv(paste0("runs/",i,"/mpra_input/dna_depth.csv"))
+    rna_counts = read_csv(paste0(runs_dir,i,"/mpra_input/rna_counts.csv"))
+    dna_counts = read_csv(paste0(runs_dir,i,"/mpra_input/dna_counts.csv"))
+    treatment_ids = read_csv(paste0(runs_dir,i,"/mpra_input/treatment_id.csv"))
+    rna_depth_factor = read_csv(paste0(runs_dir,i,"/mpra_input/rna_depth.csv"))
+    dna_depth_factor = read_csv(paste0(runs_dir,i,"/mpra_input/dna_depth.csv"))
     # depth_cols = read_csv(paste0("runs/",i,"/mpra_input/depth_cols.csv"))
-    col_ano = read_csv(paste0("runs/",i,"/mpra_input/col_annotations.csv"))
+    col_ano = read_csv(paste0(runs_dir,i,"/mpra_input/col_annotations.csv"))
     
   }
   else{ #If we are beyond the first iteration, join the data frames
-    rna_counts = full_join(read_csv(paste0("runs/",i,"/mpra_input/rna_counts.csv")), rna_counts)
-    dna_counts = full_join(read_csv(paste0("runs/",i,"/mpra_input/dna_counts.csv")), dna_counts)
-    treatment_ids = rbind(read_csv(paste0("runs/",i,"/mpra_input/treatment_id.csv")), treatment_ids)
-    rna_depth_factor = rbind(read_csv(paste0("runs/",i,"/mpra_input/rna_depth.csv")), rna_depth_factor)
-    dna_depth_factor = rbind(read_csv(paste0("runs/",i,"/mpra_input/dna_depth.csv")), dna_depth_factor)
+    rna_counts = full_join(read_csv(paste0(runs_dir,i,"/mpra_input/rna_counts.csv")), rna_counts)
+    dna_counts = full_join(read_csv(paste0(runs_dir,i,"/mpra_input/dna_counts.csv")), dna_counts)
+    treatment_ids = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/treatment_id.csv")), treatment_ids)
+    rna_depth_factor = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/rna_depth.csv")), rna_depth_factor)
+    dna_depth_factor = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/dna_depth.csv")), dna_depth_factor)
     # depth_cols = rbind(read_csv(paste0("runs/",i,"/mpra_input/depth_cols.csv")), depth_cols)
-    col_ano = rbind(read_csv(paste0("runs/",i,"/mpra_input/col_annotations.csv")), col_ano)
+    col_ano = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/col_annotations.csv")), col_ano)
     
   }
 }

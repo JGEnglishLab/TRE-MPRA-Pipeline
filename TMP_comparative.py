@@ -13,7 +13,6 @@ def check_y_n_inp(inp, correction_message = "Try again"):
 	return inp
 
 DEFAULT_THREADS = 6
-
 parser = argparse.ArgumentParser(
                     prog = 'set up comparisons',
                     description = 'Takes optional input of comparison Tsvs')
@@ -21,6 +20,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-p', '--pairwise_tsv', dest="pairwise_comps", required=False)
 parser.add_argument('-m', '--multi_tsv', dest="multi_comps", required=False)
 parser.add_argument('-n', '--n_workers', dest="threads", required=False)
+parser.add_argument('-r', '--runs_directory', dest="runs_directory", required=False)
+
 
 args = parser.parse_args()
 
@@ -30,6 +31,13 @@ dt_string = now.strftime("%d-%m-%Y_%H-%M")
 pairwise_comps=args.pairwise_comps
 multi_comps=args.multi_comps
 threads = args.threads
+runs_directory=args.runs_directory
+
+if not runs_directory:
+	runs_directory = "./runs/"
+if not runs_directory.endswith("/"):
+	runs_directory = runs_directory + "/"
+
 
 if not threads:
 	threads = DEFAULT_THREADS
@@ -42,10 +50,19 @@ treatment_list = [] #Used for user manually creating comparisons
 run_treatment_dict = {} #Used for checking an input TSV
 
 
-for d in os.listdir("./runs"): #Loop through directories (ie run names)
+def check_if_run_ready(d):
+	return os.path.exists(f"{runs_directory}{d}/metaData.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/rna_counts.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/dna_counts.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/treatment_id.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/rna_depth.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/dna_depth.csv") and \
+			os.path.exists(f"{runs_directory}{d}/mpra_input/col_annotations.csv")
+
+for d in os.listdir(runs_directory): #Loop through directories (ie run names)
 	if (d != ".DS_Store"):
-		if os.path.exists(f"./runs/{d}/metaData.csv"):
-			md = pd.read_csv(f"./runs/{d}/metaData.csv")
+		if check_if_run_ready(d):
+			md = pd.read_csv(f"{runs_directory}{d}/metaData.csv")
 			cur_treatments = md.treatment.unique()
 			for t in cur_treatments:
 				if t != "DNA":
@@ -320,15 +337,15 @@ else: #If their multi-input file
 
 if run_pairwise:
 	if not pairwise_comps: #IE they didn't enter a TSV
-		os.system(f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads}")
+		os.system(f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads} {runs_directory}")
 	else: #They did enter a TSV
-		os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads}")
+		os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}")
 
 if run_multi:
 	if not multi_comps: #IE they didn't enter a TSV
-		os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads}")
+		os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads} {runs_directory}")
 	else: #They did enter a TSV
-		os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads}")
+		os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads} {runs_directory}")
 
 
 
