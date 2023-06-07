@@ -12,7 +12,7 @@ def check_y_n_inp(inp, correction_message = "Try again"):
 		inp = input("Enter \"y\" or \"n\": ")
 	return inp
 
-DEFAULT_THREADS = 6
+DEFAULT_THREADS = 1
 parser = argparse.ArgumentParser(
                     prog = 'set up comparisons',
                     description = 'Takes optional input of comparison Tsvs')
