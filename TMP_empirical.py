@@ -8,6 +8,7 @@ from datetime import datetime
 import subprocess
 
 print("Running TMP_empirical")
+DEFAULT_THREADS = 1
 
 
 def check_dir(path):  # Checks a directory to make sure that fastq files exist in directory
@@ -215,7 +216,7 @@ if threads:
         print("-n / --n_workers flag must be numeric")
         threads = input("Input the number of workers (threads) to be used by MPRAnalyze (default = 1): ")
 else:
-    threads = 1
+    threads = DEFAULT_THREADS
 
 ###########################################################################
 ###########################################################################
