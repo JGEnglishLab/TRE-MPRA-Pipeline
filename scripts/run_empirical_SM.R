@@ -26,14 +26,13 @@ col_ano = read_csv(args[4])
 rna_depth = read_csv(args[5])$rna_depth
 dna_depth = read_csv(args[6])$dna_depth
 mData = read_csv(args[7])
+threads = args[8]
 
 RUN_NAME = unique(mData$run_name)
 
-
-
 controls = grepl('^Spacer|^Scramble', rna_counts$architecture)
 
-param <- BatchtoolsParam(workers = 5)
+param <- BatchtoolsParam(workers = threads)
 
 assert("RNA and DNA counts same length", nrow(dna_counts) == nrow(rna_counts))
 architecture_order = dna_counts$architecture
