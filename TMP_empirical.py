@@ -13,9 +13,16 @@ print("Running TMP_empirical")
 DEFAULT_THREADS = 1
 
 
-def check_dir(path):  # Checks a directory to make sure that fastq files exist in directory
+def check_dir(
+    path,
+):  # Checks a directory to make sure that fastq files exist in directory
     for f in os.listdir(path):
-        if f.endswith(".fastq") or f.endswith(".fq") or f.endswith(".fq.gz") or f.endswith(".fastq.gz"):
+        if (
+            f.endswith(".fastq")
+            or f.endswith(".fq")
+            or f.endswith(".fq.gz")
+            or f.endswith(".fastq.gz")
+        ):
             return True
     return False
 
@@ -25,17 +32,17 @@ def check_y_n_inp(inp, correction_message="Try again"):
     while inp != "y" and inp != "n":
         print(f"{inp} is an invalid response")
         print(correction_message)
-        inp = input("Enter \"y\" or \"n\": ")
+        inp = input('Enter "y" or "n": ')
     return inp
 
 
 def check_regex(reg_res, pattern):
     """
-	Checks to make sure that candidate sample numbers returned by this regex "S\d+"
-	all map to the same sample number
-	So if the regex return ["S11", "S11"] or ["S11"] we can assume that the sample number is 11
-	if the regex returns [] or ["S11", "S13"] we don't know what the sample number is
-	"""
+    Checks to make sure that candidate sample numbers returned by this regex "S\d+"
+    all map to the same sample number
+    So if the regex return ["S11", "S11"] or ["S11"] we can assume that the sample number is 11
+    if the regex returns [] or ["S11", "S13"] we don't know what the sample number is
+    """
 
     if len(reg_res) == 0:
         return False
@@ -50,21 +57,24 @@ def check_regex(reg_res, pattern):
 
 def check_sample_pattern(entered_samples):
     """
-	checks to make sure that entered samples follow this pattern
-	1,4,5 ... etc. 
-	"""
+    checks to make sure that entered samples follow this pattern
+    1,4,5 ... etc.
+    """
     pattern = re.compile(r"^\d+\s*(\s*,\s*\d+\s*)*$")
-    while not pattern.match(entered_samples) or entered_samples != pattern.match(entered_samples).group():
-        print(f"\"{entered_samples}\" doesn't match the necessary pattern")
+    while (
+        not pattern.match(entered_samples)
+        or entered_samples != pattern.match(entered_samples).group()
+    ):
+        print(f'"{entered_samples}" doesn\'t match the necessary pattern')
         entered_samples = input("Enter the sample numbers separated by commas: ")
     return entered_samples
 
 
 def check_sample_numbers(entered_samples, remaining_samples):
     """
-	Checks if the user accidentally enters a wrong sample number
-	Returns the samples in a list
-	"""
+    Checks if the user accidentally enters a wrong sample number
+    Returns the samples in a list
+    """
     entered_samples = check_sample_pattern(entered_samples)
 
     sep_samples = []
@@ -95,17 +105,21 @@ def diff_letters(a, b):
 
 def diff_reads(a, b):
     """
-	makes sure the only difference between two file names is R1 and R2
-	"""
+    makes sure the only difference between two file names is R1 and R2
+    """
     pattern = re.compile(r"[r|R][1|2]")
     return pattern.search(a).group() != pattern.search(b).group()
 
 
 def check_treatment_tsv(tsv):
     """
-	:param tsv: the tsv input by the user containing sample numbers and treatment types
-	:return: a bool if correct or not, a treatment dictionary, a list of all sample numbers, and an error or success message
-	"""
+    :param tsv: the tsv input by the user containing sample numbers and treatment types
+    :return: a tuple
+        a bool if correct or not
+        a treatment dictionary
+        a list of all sample numbers
+        and an error or success message
+    """
     treatments = {}
     sample_list = []
     for line in tsv:
@@ -115,19 +129,44 @@ def check_treatment_tsv(tsv):
             sample_number = line.split("\t")[0]
             treatment_type = line.split("\t")[1]
         except:
-            return False, treatments, sample_list, "Treatment TSV must have two columns separated by a tab"
+            return (
+                False,
+                treatments,
+                sample_list,
+                "Treatment TSV must have two columns separated by a tab",
+            )
 
         if not sample_number.isnumeric():
-            return False, treatments, sample_list, "Treatment TSV must contain numeric sample numbers in first column."
+            return (
+                False,
+                treatments,
+                sample_list,
+                "Treatment TSV must contain numeric sample numbers in first column.",
+            )
 
         if "_" in treatment_type or "/" in treatment_type or "|" in treatment_type:
-            return False, treatments, sample_list, "Treatments may not contain \"/\", \"|\", \"_\" characters."
+            return (
+                False,
+                treatments,
+                sample_list,
+                'Treatments may not contain "/", "|", "_" characters.',
+            )
 
         if bool(re.search(r"\s{2,99}", treatment_type)):
-            return False, treatments, sample_list, "Treatments may not contain more than one space"
+            return (
+                False,
+                treatments,
+                sample_list,
+                "Treatments may not contain more than one space",
+            )
 
         if sample_number in sample_list:
-            return False, treatments, sample_list, "Treatment TSV may not contain the same sample number more than once."
+            return (
+                False,
+                treatments,
+                sample_list,
+                "Treatment TSV may not contain the same sample number more than once.",
+            )
 
         sample_list.append(sample_number)
         treatments[sample_number.strip()] = treatment_type.strip()
@@ -136,11 +175,13 @@ def check_treatment_tsv(tsv):
 
 def check_DNA_tsv(tsv, dna_samples, rna_samples):
     """
-	:param tsv: the tsv input by the user containing DNA sample numbers and corresponding RNA sample Numbers
-	:param dna_samples: All of the DNA sample numbers
-	:param rna_samples: All of the RNA sample numbers
-	:return:
-	"""
+    :param tsv: the tsv input by the user containing DNA sample numbers and corresponding RNA sample Numbers
+    :param dna_samples: All of the DNA sample numbers
+    :param rna_samples: All of the RNA sample numbers
+    :return: A tuple
+        A boolean if the DNA TSV is correct
+        An error message
+    """
 
     error_msg = ""
     for line in tsv:
@@ -154,10 +195,14 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
             return False, error_msg
 
         if not DNA_num.isnumeric():
-            error_msg = "Error in DNA TSV, DNA column (col 1) must only contain numbers."
+            error_msg = (
+                "Error in DNA TSV, DNA column (col 1) must only contain numbers."
+            )
             return False, error_msg
         if not RNA_num.isnumeric():
-            error_msg = "Error in DNA TSV, RNA column (col 2) must only contain numbers."
+            error_msg = (
+                "Error in DNA TSV, RNA column (col 2) must only contain numbers."
+            )
             return False, error_msg
         if DNA_num not in dna_samples:
             error_msg = f"Error in DNA TSV, sample {DNA_num} found in DNA column (col 1). This isn't a DNA sample according to sample TSV"
@@ -176,17 +221,18 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
 ###########################################################################
 parser = argparse.ArgumentParser(
     formatter_class=RawTextHelpFormatter,
-    prog='Setup snakemake',
-    description='Sets up and writes a snakemake workflow to run MPRAnalyze')
-parser.add_argument('-r', required=False,type=str, help=ht.r())
-parser.add_argument('-f',  required=True,type=str, help=ht.f())
-parser.add_argument('-t',  required=True,type=str, help=ht.t())
-parser.add_argument('-dt', required=False,type=str, help=ht.dt())
-parser.add_argument('-sr', required=False,type=str, default="S",help=ht.sr())
-parser.add_argument('-d', required=False,type=str, help=ht.d())
-parser.add_argument('-s', required=False,type=str, help=ht.s())
-parser.add_argument('-n',  required=False,type=int, default=DEFAULT_THREADS, help=ht.n())
-parser.add_argument('-i', required=False,type=str,help=ht.i())
+    prog="Setup snakemake",
+    description="Sets up and writes a snakemake workflow to run MPRAnalyze",
+)
+parser.add_argument("-r", required=False, type=str, help=ht.r_empirical())
+parser.add_argument("-f", required=True, type=str, help=ht.f())
+parser.add_argument("-t", required=True, type=str, help=ht.t())
+parser.add_argument("-dt", required=False, type=str, help=ht.dt())
+parser.add_argument("-sr", required=False, type=str, default="S", help=ht.sr())
+parser.add_argument("-d", required=False, type=str, help=ht.d())
+parser.add_argument("-s", required=False, type=str, help=ht.s())
+parser.add_argument("-n", required=False, type=int, default=DEFAULT_THREADS, help=ht.n())
+parser.add_argument("-i", required=False, type=str, help=ht.i())
 
 args = parser.parse_args()
 
@@ -210,7 +256,6 @@ threads = vars(args)["n"]
 # Will just be an empty list if no spike path is provided, or if all spikes are invalid
 valid_spikes = []
 if spike_path:
-
     legal_path = os.path.exists(spike_path)
 
     while not legal_path:
@@ -221,7 +266,7 @@ if spike_path:
     abs_spike_path = os.popen(f"readlink -f {spike_path}").read().strip()
 
     spike_file = open(abs_spike_path, "r+")
-    nucleotides = 'ACTG'
+    nucleotides = "ACTG"
     for spike in spike_file:
         spike = spike.strip()
 
@@ -253,8 +298,10 @@ if not dir_name:
     dir_name = input("Enter the name of the run: ")
 
 while "_" in dir_name:
-    print("The name of the run cannot include \"_\"")
-    dir_name = input("Change the name of the run so it does not include any underscores: ")
+    print('The name of the run cannot include "_"')
+    dir_name = input(
+        "Change the name of the run so it does not include any underscores: "
+    )
 
 while os.path.exists(f"./runs/{dir_name}"):
     print(f"The run {dir_name} already exists!")
@@ -269,11 +316,15 @@ while os.path.exists(f"./runs/{dir_name}"):
 ###########################################################################
 ###########################################################################
 
-legal_path = os.path.exists(treatment_tsv_path) and bool(re.search(r".tsv(/)?$", treatment_tsv_path))
+legal_path = os.path.exists(treatment_tsv_path) and bool(
+    re.search(r".tsv(/)?$", treatment_tsv_path)
+)
 while not legal_path:
     print(f"Treatment TSV not found in {treatment_tsv_path}")
     treatment_tsv_path = input("Check path and enter it again: ")
-    legal_path = os.path.exists(treatment_tsv_path) and bool(re.search(r".tsv(/)?$", treatment_tsv_path))
+    legal_path = os.path.exists(treatment_tsv_path) and bool(
+        re.search(r".tsv(/)?$", treatment_tsv_path)
+    )
 print("Treatment TSV found!")
 
 treatment_tsv = open(treatment_tsv_path, "r")
@@ -282,9 +333,11 @@ while not correct_tsv:
     treatment_tsv.close()
     print("Error with treatment TSV provided")
     print(msg)
-    _ = input("Check format and and try again (Enter \"y\" to continue)")
+    _ = input('Check format and and try again (Enter "y" to continue)')
     treatment_tsv = open(treatment_tsv_path, "r")
-    correct_tsv, treatments, tsv_sample_numbers, msg = check_treatment_tsv(treatment_tsv)
+    correct_tsv, treatments, tsv_sample_numbers, msg = check_treatment_tsv(
+        treatment_tsv
+    )
 
 noDNAProvided = True
 DNA_sample_num = []
@@ -301,23 +354,29 @@ for t in treatments:
 
 if noDNAProvided:  # No DNA sample was auto detected in the TSV!
     print("No DNA sample was auto detected in the TSV!")
-    print("The treatment TSV must contain at least 1 DNA sample labeled as \"DNA\"")
-    print("If more than one DNA sample is present for run, label all of them as \"DNA\"")
+    print('The treatment TSV must contain at least 1 DNA sample labeled as "DNA"')
+    print('If more than one DNA sample is present for run, label all of them as "DNA"')
     exit()
 
 if len(DNA_sample_num) > 1:  # Multiple DNA sample detected.
     print("Multiple DNA samples detected!")
 
     if not dna_tsv_path:
-        print("If multiple DNA samples are present, you must provide a DNA tsv using the -dt flag.")
+        print(
+            "If multiple DNA samples are present, you must provide a DNA tsv using the -dt flag."
+        )
         print("see --help flag for more info")
         exit()
 
-    legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
+    legal_path = os.path.exists(dna_tsv_path) and bool(
+        re.search(r".tsv(/)?$", dna_tsv_path)
+    )
     while not legal_path:
         print(f"DNA tsv not found in {dna_tsv_path}")
         dna_tsv_path = input("Check path and enter it again: ")
-        legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
+        legal_path = os.path.exists(dna_tsv_path) and bool(
+            re.search(r".tsv(/)?$", dna_tsv_path)
+        )
     print("DNA tsv found!")
 
     DNA_tsv = open(dna_tsv_path, "r")
@@ -325,7 +384,7 @@ if len(DNA_sample_num) > 1:  # Multiple DNA sample detected.
     while not correct_tsv:
         DNA_tsv.close()
         print(error_msg)
-        _ = input("Check format and and try again (Enter \"y\" to continue)")
+        _ = input('Check format and and try again (Enter "y" to continue)')
         DNA_tsv = open(dna_tsv_path, "r")
         correct_tsv, error_msg = check_DNA_tsv(DNA_tsv, DNA_sample_num, RNA_sample_num)
     print(error_msg)
@@ -343,10 +402,10 @@ legal_path = os.path.exists(fastq_path) and check_dir(fastq_path)
 
 while not legal_path:
     if not os.path.exists(fastq_path):
-        print(f"Path does not exist: \"{fastq_path}\"")
+        print(f'Path does not exist: "{fastq_path}"')
         fastq_path = input("Check path and enter it again: ")
     if os.path.exists(fastq_path) and not check_dir(fastq_path):
-        print(f"No Fastq files found in path: \"{fastq_path}\"")
+        print(f'No Fastq files found in path: "{fastq_path}"')
         fastq_path = input("Check path and enter it again: ")
     legal_path = os.path.exists(fastq_path) and check_dir(fastq_path)
 
@@ -365,16 +424,18 @@ if not fastq_path.endswith("/"):
 os.chdir(wd)
 
 if not dna_path:
-    print("\nNOTE!!!\nIf the DNA Fastq files are not contained in the directory above, you must provide a path to them using the \"-d\" flag")
+    print(
+        '\nNOTE!!!\nIf the DNA Fastq files are not contained in the directory above, you must provide a path to them using the "-d" flag'
+    )
 else:
     legal_path = os.path.exists(dna_path) and check_dir(dna_path)
 
     while not legal_path:
         if not os.path.exists(dna_path):
-            print(f"Path to DNA samples, \"{dna_path}\" does not exist ")
+            print(f'Path to DNA samples, "{dna_path}" does not exist ')
             dna_path = input("Check path and enter it again: ")
         if os.path.exists(dna_path) and not check_dir(dna_path):
-            print(f"No Fastq files found in path to DNA samples \"{dna_path}\"")
+            print(f'No Fastq files found in path to DNA samples "{dna_path}"')
             dna_path = input("Check path and enter it again: ")
         legal_path = os.path.exists(dna_path) and check_dir(dna_path)
 
@@ -416,7 +477,6 @@ os.system(f"mkdir -p ./runs/{dir_name}/joined_files/un_files")
 ###########################################################################
 ignore_files = []
 if ignore_path:
-
     legal_path = os.path.exists(ignore_path)
 
     while not legal_path:
@@ -430,7 +490,6 @@ if ignore_path:
 
     for f in ignore_file:
         ignore_files.append(f)
-
 
 
 ###########################################################################
@@ -451,7 +510,10 @@ for filename in os.listdir(fastq_path):
 
 if dna_path and os.path.exists(dna_path):
     for filename in os.listdir(dna_path):
-        if bool(re.search(r".f(q|astq)(.gz)?$", filename)) and filename not in ignore_files:
+        if (
+            bool(re.search(r".f(q|astq)(.gz)?$", filename))
+            and filename not in ignore_files
+        ):
             files.append(filename)
             raw_file_paths[filename] = dna_path
 
@@ -512,8 +574,8 @@ for file1 in file1s:
             file_info.write(f"{file2_path + file2},True\n")
 
             # The file names will have the .24bp_5prim added from trimGalore
-            file1 = file1.split('.', 1)[0] + ".24bp_5prime." + file1.split('.', 1)[1]
-            file2 = file2.split('.', 1)[0] + ".24bp_5prime." + file2.split('.', 1)[1]
+            file1 = file1.split(".", 1)[0] + ".24bp_5prime." + file1.split(".", 1)[1]
+            file2 = file2.split(".", 1)[0] + ".24bp_5prime." + file2.split(".", 1)[1]
             # trim_galore subs fq for fastq. So we need to change the file names
             file1 = re.sub(".fastq", ".fq", file1)
             file2 = re.sub(".fastq", ".fq", file2)
@@ -558,16 +620,20 @@ if len(un_paired_files) == 0:
 
 elif len(file1) == len(files):
     print("\nNo pairs were auto detected!")
-    print("In order to pair files together the only difference in the file names should be between \"R1\" and \"R2\"")
-    print("The patterns \"R1\" and \"R2\" may only be present once in each file name.")
+    print(
+        'In order to pair files together the only difference in the file names should be between "R1" and "R2"'
+    )
+    print('The patterns "R1" and "R2" may only be present once in each file name.')
     print("Run will continue without pairing files")
     print("If files must be paired, fix file names and start over.")
     merge = False
 
 else:
     print("\nSome files were not paired")
-    print("In order to pair files together the only difference in the file names should be between \"R1\" and \"R2\"")
-    print("The patterns \"R1\" and \"R2\" may only be present once in each file name.")
+    print(
+        'In order to pair files together the only difference in the file names should be between "R1" and "R2"'
+    )
+    print('The patterns "R1" and "R2" may only be present once in each file name.')
     print("__________________________")
     for f in un_paired_files_raw:
         print(f)
@@ -586,16 +652,16 @@ all_sample_numbers = []
 
 
 for f in files:
-    reg_res = re.findall(pattern + '\d+', f)
+    reg_res = re.findall(pattern + "\d+", f)
     if check_regex(reg_res, pattern):
-        sample_number = reg_res[0].replace(pattern, '')  # Get the actual sample number
+        sample_number = reg_res[0].replace(pattern, "")  # Get the actual sample number
         fileSamplePair[f] = sample_number
         if sample_number not in all_sample_numbers:
             all_sample_numbers.append(sample_number)
     else:
         print("\n****************************************")
-        print("Different file format detected for \"" + f + "\"")
-        sample_number = input("Enter sample number e.g. \"14\" for sample 14: ")
+        print('Different file format detected for "' + f + '"')
+        sample_number = input('Enter sample number e.g. "14" for sample 14: ')
         while not sample_number.isnumeric():
             print("Sample number must be a number.")
             input(f"Enter sample number for {f}")
@@ -607,14 +673,20 @@ for f in files:
 tsv_sample_numbers.sort()
 all_sample_numbers.sort()
 if tsv_sample_numbers != all_sample_numbers:
-    print("The sample numbers provided in treatment TSV and the sample numbers detected from files do not match!\n")
-    print("These are the sample numbers from treatment TSV that are NOT detected in the files provided")
+    print(
+        "The sample numbers provided in treatment TSV and the sample numbers detected from files do not match!\n"
+    )
+    print(
+        "These are the sample numbers from treatment TSV that are NOT detected in the files provided"
+    )
     print("-")
     for i in tsv_sample_numbers:
         if i not in all_sample_numbers:
             print("\t", i)
     print("-")
-    print("These are the sample numbers from the files provided that are NOT in the treatment TSV")
+    print(
+        "These are the sample numbers from the files provided that are NOT in the treatment TSV"
+    )
     print("-")
     for i in all_sample_numbers:
         if i not in tsv_sample_numbers:
@@ -625,7 +697,9 @@ if tsv_sample_numbers != all_sample_numbers:
     joined_sample_numbers.sort()
     print(joined_sample_numbers)
 
-    con = input("If you only want to use the above files enter y, otherwise enter n to exit and fixe your files (y/n): ")
+    con = input(
+        "If you only want to use the above files enter y, otherwise enter n to exit and fixe your files (y/n): "
+    )
     con = check_y_n_inp(con)
 
     if con == "n":
@@ -640,7 +714,8 @@ f.write("fileName,sampleNumber,treatment,run_name\n")
 
 # Write CSV
 for file in fileSamplePair:
-    line = file + "," + fileSamplePair[file] + "," + treatments[fileSamplePair[file]] + "," + dir_name + "\n"
+    #File, sample#, treatment name, run_name
+    line = (f"{file},{fileSamplePair[file]},{treatments[fileSamplePair[file]]},{dir_name}\n")
     f.write(line)
 
 f.close()
@@ -655,9 +730,10 @@ f.close()
 sf = open(f"./runs/{dir_name}/Snakefile", "w+")
 
 if merge:
-    sf.write("MERGE_DIR = \"merged_files/\"")
+    sf.write('MERGE_DIR = "merged_files/"')
 
-sf.write(f"""
+sf.write(
+    f"""
 STARCODE_DIR = "star_code/"
 SCRIPTS_DIR = "../../scripts/"
 BARCODE_MAP_DIR = "../../barcode_map_data/"
@@ -737,18 +813,22 @@ rule make_starcode_input:
 		rc = dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
 	output: dynamic(STARCODE_DIR + "sample\u007bn1\u007d_mapped.tsv")
 	shell: "Rscript " + SCRIPTS_DIR + "pre_process_SM.R \u007binput.md\u007d \u007binput.bcm\u007d"
-""")
+"""
+)
 
 if not merge:
-    sf.write(f"""
+    sf.write(
+        f"""
 rule count_barcodes:
 	message: "Counting Barcodes"
 	output: dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
 	shell: "python " + SCRIPTS_DIR + "count_barcodes_SM.py {fastq_path}"
-	""")
+	"""
+    )
 
 if merge:
-    sf.write(f"""
+    sf.write(
+        f"""
 rule count_barcodes:
 	message: "Counting Barcodes"
 	input: "fastqs_joined.txt"
@@ -770,10 +850,10 @@ rule trim_fastqs:
 	run: 
 		shell("python " + SCRIPTS_DIR + "fastq_trim_SM.py file_info.csv")
 		shell("touch fastqs_trimmed.txt")
-	""")
+	"""
+    )
 
 sf.close()
-
 
 command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
 os.system(command)
