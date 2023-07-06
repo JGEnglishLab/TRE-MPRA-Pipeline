@@ -18,7 +18,7 @@
 *.jar
 *.rar
 *.tar
-*.zip
+#*.zip
 
 # Logs and databases #
 ######################
@@ -38,3 +38,10 @@ Thumbs.db
 
 # IDE stuff
 .idea
+
+
+#Stuff for docker
+*.csv
+install.R
+environment.yml
+Dockerfile

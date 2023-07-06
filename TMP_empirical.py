@@ -3,9 +3,11 @@ import sys
 import re
 import numpy as np
 import argparse
+from argparse import RawTextHelpFormatter
 import time as t
 from datetime import datetime
 import subprocess
+import help_txt as ht
 
 print("Running TMP_empirical")
 DEFAULT_THREADS = 1
@@ -16,15 +18,6 @@ def check_dir(path):  # Checks a directory to make sure that fastq files exist i
         if f.endswith(".fastq") or f.endswith(".fq") or f.endswith(".fq.gz") or f.endswith(".fastq.gz"):
             return True
     return False
-
-
-def print_new_section():
-    print('\n')
-    print("***********************************************************************")
-    print("-----------------------------------------------------------------------")
-    print("-----------------------------------------------------------------------")
-    print("***********************************************************************")
-    print("\n")
 
 
 def check_y_n_inp(inp, correction_message="Try again"):
@@ -63,13 +56,13 @@ def check_sample_pattern(entered_samples):
     pattern = re.compile(r"^\d+\s*(\s*,\s*\d+\s*)*$")
     while not pattern.match(entered_samples) or entered_samples != pattern.match(entered_samples).group():
         print(f"\"{entered_samples}\" doesn't match the necessary pattern")
-        entered_samples = input("Enter the sample numbers seperated by commas: ")
+        entered_samples = input("Enter the sample numbers separated by commas: ")
     return entered_samples
 
 
 def check_sample_numbers(entered_samples, remaining_samples):
     """
-	Checks if the user accidentally enters a wronge sample number
+	Checks if the user accidentally enters a wrong sample number
 	Returns the samples in a list
 	"""
     entered_samples = check_sample_pattern(entered_samples)
@@ -182,45 +175,35 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
 ###########################################################################
 ###########################################################################
 parser = argparse.ArgumentParser(
+    formatter_class=RawTextHelpFormatter,
     prog='Setup snakemake',
     description='Sets up and writes a snakemake workflow to run MPRAnalyze')
-
-parser.add_argument('-r', '--run_name', dest="dir_name", required=False)
-parser.add_argument('-f', '--path_to_fq', dest="fastq_path", required=False)
-parser.add_argument('-t', '--path_to_treatment_tsv', dest="treatment_tsv_path", required=False)
-parser.add_argument('-dt', '--path_to_dna_tsv', dest="dna_tsv_path", required=False)
-parser.add_argument('-sr', '--sample_number_regex', dest="pattern", required=False)
-parser.add_argument('-d', '--path_to_DNA_fastq', dest="dna_path", required=False)
-parser.add_argument('-s', '--path_to_spikein_file', dest="spike_path", required=False)
-parser.add_argument('-n', '--n_workers', dest="threads", required=False)
+parser.add_argument('-r', required=False,type=str, help=ht.r())
+parser.add_argument('-f',  required=True,type=str, help=ht.f())
+parser.add_argument('-t',  required=True,type=str, help=ht.t())
+parser.add_argument('-dt', required=False,type=str, help=ht.dt())
+parser.add_argument('-sr', required=False,type=str, default="S",help=ht.sr())
+parser.add_argument('-d', required=False,type=str, help=ht.d())
+parser.add_argument('-s', required=False,type=str, help=ht.s())
+parser.add_argument('-n',  required=False,type=int, default=DEFAULT_THREADS, help=ht.n())
+parser.add_argument('-i', required=False,type=str,help=ht.i())
 
 args = parser.parse_args()
-dir_name = args.dir_name
-fastq_path = args.fastq_path
-treatment_tsv_path = args.treatment_tsv_path
-dna_tsv_path = args.dna_tsv_path
-pattern = args.pattern
-dna_path = args.dna_path
-spike_path = args.spike_path
-threads = args.threads
+
+dir_name = vars(args)["r"]
+fastq_path = vars(args)["f"]
+treatment_tsv_path = vars(args)["t"]
+dna_tsv_path = vars(args)["dt"]
+pattern = vars(args)["sr"]
+dna_path = vars(args)["d"]
+spike_path = vars(args)["s"]
+ignore_path = vars(args)["i"]
+threads = vars(args)["n"]
+
 
 ###########################################################################
 ###########################################################################
-#                CHECK NUMBER OF WORKERS
-# 				 (FOR create_alphas rule)
-###########################################################################
-###########################################################################
-
-if threads:
-    while not threads.isnumeric():
-        print("-n / --n_workers flag must be numeric")
-        threads = input("Input the number of workers (threads) to be used by MPRAnalyze (default = 1): ")
-else:
-    threads = DEFAULT_THREADS
-
-###########################################################################
-###########################################################################
-#                CHECK SPIKE-IN FILE IF SPECIFIED
+#                CHECK SPIKE-IN FILE -s
 ###########################################################################
 ###########################################################################
 
@@ -263,9 +246,8 @@ else:
 #                   		GET NAME OF RUN
 ###########################################################################
 ###########################################################################
-print_new_section()
 wd = os.getcwd()
-print(f"WORKING DIR {wd}")
+
 
 if not dir_name:
     dir_name = input("Enter the name of the run: ")
@@ -286,36 +268,13 @@ while os.path.exists(f"./runs/{dir_name}"):
 #                   	GET TREATMENT AND DNA TSV
 ###########################################################################
 ###########################################################################
-if not treatment_tsv_path:
-    print("\n")
-    print("You are required to supply a .tsv containing the sample numbers and treatment names")
-    print("The tsv should follow the following format")
-    print("\n1\tSerum Free")
-    print("2\tSerum Free")
-    print("3\tSerum Free")
-    print("4\tATP")
-    print("5\tForskolin")
-    print("6\tDNA\n")
-    print("NOTES:")
-    print("\t1: A DNA sample must be included for this pipeline to work. And it must be labeled as \"DNA\"")
-    print("\t\tIf your run contains more than one DNA sample label all of them as \"DNA\"")
-    print("\t2: Do not include a header.")
-    print("\t3: If you have multiple replicates of the same treatment they must be the same name")
-    print("\tfor example if you put")
-    print("\t\t1\tSerum Free 1")
-    print("\t\t2\tSerum Free 2")
-    print("\t\t3\tSerum Free 3")
-    print("\t Serum Free 1 2 and 3 would all be treated as separate treatment types. ")
-    print("\n")
-
-    treatment_tsv_path = input("\nEnter path to tsv containing sample numbers and corresponding treatments: ")
 
 legal_path = os.path.exists(treatment_tsv_path) and bool(re.search(r".tsv(/)?$", treatment_tsv_path))
 while not legal_path:
-    print(f"tsv not found in {treatment_tsv_path}")
+    print(f"Treatment TSV not found in {treatment_tsv_path}")
     treatment_tsv_path = input("Check path and enter it again: ")
     legal_path = os.path.exists(treatment_tsv_path) and bool(re.search(r".tsv(/)?$", treatment_tsv_path))
-print("tsv found!")
+print("Treatment TSV found!")
 
 treatment_tsv = open(treatment_tsv_path, "r")
 correct_tsv, treatments, tsv_sample_numbers, msg = check_treatment_tsv(treatment_tsv)
@@ -345,39 +304,21 @@ if noDNAProvided:  # No DNA sample was auto detected in the TSV!
     print("The treatment TSV must contain at least 1 DNA sample labeled as \"DNA\"")
     print("If more than one DNA sample is present for run, label all of them as \"DNA\"")
     exit()
-# TODO maybe Make sure that the user inputs DNA
 
 if len(DNA_sample_num) > 1:  # Multiple DNA sample detected.
-    print_new_section()
     print("Multiple DNA samples detected!")
-    print("You must provide a TSV containing the DNA sample numbers in the first column")
-    print("and the corresponding RNA samples in the second column.")
-    print("For example if you had\n")
-    print("\t1\tSerum Free")
-    print("\t2\tSerum Free")
-    print("\t3\tATP")
-    print("\t4\tForskolin")
-    print("\t5\tDNA")
-    print("\t6\tDNA\n")
-    print("And DNA 5 corresponded with the Serum Free samples and DNA 6 corresponded with the others")
-    print("You would input a TSV of the following format\n")
-    print("\t5\t1")
-    print("\t5\t2")
-    print("\t6\t3")
-    print("\t6\t4\n")
-    print("NOTES:")
-    print("\t1: Do not include a header")
-    print("\t2: Each RNA sample must correspond to 1 and only 1 DNA sample")
+
     if not dna_tsv_path:
-        dna_tsv_path = input(
-            "Provide the path to the a TSV containing the DNA sample numbers and corresponding RNA sample numbers: ")
+        print("If multiple DNA samples are present, you must provide a DNA tsv using the -dt flag.")
+        print("see --help flag for more info")
+        exit()
 
     legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
     while not legal_path:
-        print(f"tsv not found in {dna_tsv_path}")
+        print(f"DNA tsv not found in {dna_tsv_path}")
         dna_tsv_path = input("Check path and enter it again: ")
         legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
-    print("tsv found!")
+    print("DNA tsv found!")
 
     DNA_tsv = open(dna_tsv_path, "r")
     correct_tsv, error_msg = check_DNA_tsv(DNA_tsv, DNA_sample_num, RNA_sample_num)
@@ -398,10 +339,6 @@ else:
 #                   	GET PATH TO FASTQS
 ###########################################################################
 ###########################################################################
-print_new_section()
-if not fastq_path:
-    fastq_path = input("Enter the path to your fastq files: ")
-
 legal_path = os.path.exists(fastq_path) and check_dir(fastq_path)
 
 while not legal_path:
@@ -428,8 +365,7 @@ if not fastq_path.endswith("/"):
 os.chdir(wd)
 
 if not dna_path:
-    print(
-        "\nNOTE!!!\nIf the DNA Fastq files are not contained in the directory above, you must provide a path to them using the \"-d\" flag")
+    print("\nNOTE!!!\nIf the DNA Fastq files are not contained in the directory above, you must provide a path to them using the \"-d\" flag")
 else:
     legal_path = os.path.exists(dna_path) and check_dir(dna_path)
 
@@ -466,12 +402,36 @@ os.system(f"mkdir -p ./runs/{dir_name}/raw_counts")
 os.system(f"mkdir -p ./runs/{dir_name}/rna_dna_samples")
 os.system(f"mkdir -p ./runs/{dir_name}/run_descriptive_stats")
 os.system(f"mkdir -p ./runs/{dir_name}/star_code")
+
 # Used for files that need to be merged
 os.system(f"mkdir -p ./runs/{dir_name}/trimmed_files")
 os.system(f"mkdir -p ./runs/{dir_name}/joined_files")
 os.system(f"mkdir -p ./runs/{dir_name}/joined_files/un_files")
 
-print_new_section()
+
+###########################################################################
+###########################################################################
+#                   GET LIST OF FQ FILES TO BE IGNORED
+###########################################################################
+###########################################################################
+ignore_files = []
+if ignore_path:
+
+    legal_path = os.path.exists(ignore_path)
+
+    while not legal_path:
+        print(f"No ignore file found at {ignore_path}")
+        ignore_path = input("Check path and enter it again: ")
+        legal_path = os.path.exists(ignore_path)
+    print("Ignore file found")
+    abs_ignore_path = os.popen(f"readlink -f {ignore_path}").read().strip()
+
+    ignore_file = open(abs_ignore_path, "r+")
+
+    for f in ignore_file:
+        ignore_files.append(f)
+
+
 
 ###########################################################################
 ###########################################################################
@@ -485,13 +445,13 @@ raw_file_paths = {}
 files = []
 
 for filename in os.listdir(fastq_path):
-    if bool(re.search(r".f(q|astq)(.gz)?$", filename)):
+    if bool(re.search(r".f(q|astq)(.gz)?$", filename)) and filename not in ignore_files:
         files.append(filename)
         raw_file_paths[filename] = fastq_path
 
 if dna_path and os.path.exists(dna_path):
     for filename in os.listdir(dna_path):
-        if bool(re.search(r".f(q|astq)(.gz)?$", filename)):
+        if bool(re.search(r".f(q|astq)(.gz)?$", filename)) and filename not in ignore_files:
             files.append(filename)
             raw_file_paths[filename] = dna_path
 
@@ -619,27 +579,11 @@ else:
     print("These files will be paired")
     merge = True
 
-print_new_section()
-
 files = res_list = [y for x in [paired_files, un_paired_files] for y in x]
 
 fileSamplePair = {}
 all_sample_numbers = []
 
-if not pattern:
-    pattern = "S"
-    print("Each file name will be searched for a sample number automatically search for sample numbers.")
-    print("The default is to search for a number following \"S\" IE S{number}")
-    print("You can change this using the -sr flag")
-    print("If you want to change it use -sr {pattern}")
-    print("Enter the exact pattern that precedes the sample number in each of the file names.")
-    print("For example. If your file names looked like this:")
-    print(
-        "\ttest_lane1_sn1.fastq\n\ttest_lane2_sn1.fastq\n\ttest_lane1_sn2.fastq\n\ttest_lane2_sn2.fastq\n\ttest_lane1_sn3.fastq\n\ttest_lane2_sn3.fastq\n")
-    print("and the sample number is indicated by the number following \"_sn\"")
-    print("You would enter \"_sn\" as the pattern")
-
-print_new_section()
 
 for f in files:
     reg_res = re.findall(pattern + '\d+', f)
@@ -681,8 +625,7 @@ if tsv_sample_numbers != all_sample_numbers:
     joined_sample_numbers.sort()
     print(joined_sample_numbers)
 
-    con = input(
-        "If you only want to use the above files enter y, otherwise enter n to exit and fixe your files (y/n): ")
+    con = input("If you only want to use the above files enter y, otherwise enter n to exit and fixe your files (y/n): ")
     con = check_y_n_inp(con)
 
     if con == "n":
@@ -691,8 +634,6 @@ if tsv_sample_numbers != all_sample_numbers:
     for file in fileSamplePair:
         if fileSamplePair[file] not in joined_sample_numbers:
             del fileSamplePair[file]
-
-print_new_section()
 
 f = open(f"./runs/{dir_name}/metaData.csv", "w+")
 f.write("fileName,sampleNumber,treatment,run_name\n")
@@ -833,11 +774,6 @@ rule trim_fastqs:
 
 sf.close()
 
-print_new_section()
 
-start = input("Would you like to start the run now? (y/n): ")
-start = check_y_n_inp(start)
-
-if start == "y":
-    command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
-    os.system(command)
+command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
+os.system(command)
