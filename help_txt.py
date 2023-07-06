@@ -134,3 +134,26 @@ def i():
 
     e.g. "-i ../ignore.txt"
     """
+
+
+def p():
+    return """
+    Takes a path to a tsv file containing pairwise comparisons
+    The path may be absolute or direct
+    If this flag is left blank TMP_comparative.py will ask for user input to create the TSV
+    If you make your own tsv you must use this header 
+    
+    id  base_treatment	stim_treatment	base_run	stim_run`
+    
+    The id column should just contain a unique integer for each row
+    
+    See example below
+    
+    id	base_treatment	stim_treatment	base_run	stim_run
+    1	Serum-Free	Marin-1	19664	20250
+    2	ADRB2-2	ADRB2-5	20250	20250
+    3	Marin-1	ADRB2-5	20250	20250
+    4	FBS	Marin-1	19664	20250
+    
+    e.g. "-p ../pairwis_comparisons.tsv"
+    """
