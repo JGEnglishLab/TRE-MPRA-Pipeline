@@ -125,7 +125,7 @@ for (id_iter in comps$id){
   complete_obj = setDepthFactors(complete_obj, dnaDepth = dna_depth, rnaDepth = rna_depth)
   
   
-  if (length(unique(new_col_ano$batch)) > 1){ #If more than one batch is present us it in comparative
+  if (length(unique(new_col_ano$batch)) > 1){ #If more than one batch is present us it in comparison
     comp_obj <- analyzeComparative(obj = complete_obj,
                                    dnaDesign = ~ barcode + batch + condition,
                                    rnaDesign = ~ condition,

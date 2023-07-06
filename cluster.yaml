@@ -1,6 +1,0 @@
-__default__:
-        cluster: kingspeak
-        partition: kingspeak-shared
-        account: english
-        nodes: 1
-        time: 01:00:00
