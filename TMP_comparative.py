@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import argparse
 from datetime import datetime
+import help_txt as ht
 
 
 def check_y_n_inp(inp, correction_message="Try again"):
@@ -9,19 +10,19 @@ def check_y_n_inp(inp, correction_message="Try again"):
     while inp != "y" and inp != "n":
         print(f"{inp} is an invalid response")
         print(correction_message)
-        inp = input("Enter \"y\" or \"n\": ")
+        inp = input('Enter "y" or "n": ')
     return inp
 
 
 DEFAULT_THREADS = 1
 parser = argparse.ArgumentParser(
-    prog='set up comparisons',
-    description='Takes optional input of comparison Tsvs')
+    prog="set up comparisons", description="Takes optional input of comparison Tsvs"
+)
 
-parser.add_argument('-p', required=False)
-parser.add_argument('-m', required=False)
-parser.add_argument('-n', required=False, type=int, default=DEFAULT_THREADS, help=ht.n())
-parser.add_argument('-r', default="./runs/", required=False)
+parser.add_argument("-p", required=False, help=ht.p())
+parser.add_argument("-m", required=False, help=ht.m())
+parser.add_argument("-n", required=False, type=int, default=DEFAULT_THREADS, help=ht.n())
+parser.add_argument("-r", default="./runs/", required=False, help=ht.r_comparative())
 
 args = parser.parse_args()
 
@@ -47,17 +48,19 @@ run_treatment_dict = {}  # Used for checking an input TSV
 
 
 def check_if_run_ready(d):
-    return os.path.exists(f"{runs_directory}{d}/metaData.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/rna_counts.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/dna_counts.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/treatment_id.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/rna_depth.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/dna_depth.csv") and \
-        os.path.exists(f"{runs_directory}{d}/mpra_input/col_annotations.csv")
+    return (
+        os.path.exists(f"{runs_directory}{d}/metaData.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/rna_counts.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/dna_counts.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/treatment_id.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/rna_depth.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/dna_depth.csv")
+        and os.path.exists(f"{runs_directory}{d}/mpra_input/col_annotations.csv")
+    )
 
 
 for d in os.listdir(runs_directory):  # Loop through directories (ie run names)
-    if (d != ".DS_Store"):
+    if d != ".DS_Store":
         if check_if_run_ready(d):
             md = pd.read_csv(f"{runs_directory}{d}/metaData.csv")
             cur_treatments = md.treatment.unique()
@@ -88,7 +91,9 @@ def print_menu():
 run_pairwise = False
 
 if not pairwise_comps:  # They will manually enter the pairwise comparisons
-    manual_pairwise = input("Would you like to manually input pairwise comparisons? (y/n): ")
+    manual_pairwise = input(
+        "Would you like to manually input pairwise comparisons? (y/n): "
+    )
     check_y_n_inp(manual_pairwise)
     if manual_pairwise == "y":
         print("id\ttreatment\trun")
@@ -99,14 +104,18 @@ if not pairwise_comps:  # They will manually enter the pairwise comparisons
         print("***********************************")
         print("Now, enter the pairwise comparisons that you want to make")
         print("Enter the numbers corresponding to the treatments you want to compare")
-        print("The first treatment entered will be the base, the second with be the stimulated condition")
-        print("Separate the two numbers with a comma e.g. \"1,2\"")
-        print("Enter \"done\" when finished")
-        print("Enter \"menu\" to see list again")
+        print(
+            "The first treatment entered will be the base, the second with be the stimulated condition"
+        )
+        print('Separate the two numbers with a comma e.g. "1,2"')
+        print('Enter "done" when finished')
+        print('Enter "menu" to see list again')
         print("\n")
 
         getTreatments = True
-        pairwise_comparison_name = f"entered_pairwise_comparisons/pairwise_comparisons_{dt_string}.tsv"
+        pairwise_comparison_name = (
+            f"entered_pairwise_comparisons/pairwise_comparisons_{dt_string}.tsv"
+        )
         pairwise_f = open(pairwise_comparison_name, "w+")
         head = "id\tbase_treatment\tstim_treatment\tbase_run\tstim_run\n"
         pairwise_f.write(head)
@@ -114,7 +123,8 @@ if not pairwise_comps:  # They will manually enter the pairwise comparisons
         iter_id = 0
         while getTreatments:
             comp = input(
-                "Enter pairwise comparison starting with basal treatment e.g. \"1,3\" (Type \"done\" after entering all comparisons): ")
+                'Enter pairwise comparison starting with basal treatment e.g. "1,3" (Type "done" after entering all comparisons): '
+            )
             if comp.lower() == "done":
                 break
             if comp.lower() == "menu":
@@ -154,18 +164,26 @@ else:  # Check their pairwise input file
         line_number += 1
         if line_number == 1:
             if line != "id\tbase_treatment\tstim_treatment\tbase_run\tstim_run":
-                print(f"pairwise input file, {pairwise_comps} doesn't have correct header")
+                print(
+                    f"pairwise input file, {pairwise_comps} doesn't have correct header"
+                )
             continue
         if len(line.split("\t")) != 5:
-            print(f"\"{line}\" from pairwise input doesn't follow the correct format")
+            print(f'"{line}" from pairwise input doesn\'t follow the correct format')
             exit()
-        cur_id, cur_base_treatment, cur_stim_treatment, cur_base_run, cur_stim_run = line.split("\t")
+        (
+            cur_id,
+            cur_base_treatment,
+            cur_stim_treatment,
+            cur_base_run,
+            cur_stim_run,
+        ) = line.split("\t")
 
         if not cur_id.isnumeric():
-            print(f"error in pairwise tsv on line \"{line}\" \nid column must be numeric")
+            print(f'error in pairwise tsv on line "{line}" \nid column must be numeric')
             exit()
         if cur_id in id_list:
-            print(f"error in pairwise tsv on line \"{line}\" \nall ids must be unique")
+            print(f'error in pairwise tsv on line "{line}" \nall ids must be unique')
             exit()
 
         id_list.append(cur_id)
@@ -180,7 +198,6 @@ else:  # Check their pairwise input file
         stim_run_treatment_match = False
 
         for i in treatment_list:
-
             if cur_stim_treatment == i.split(" || ")[0]:
                 stim_treatment_exists = True
             if cur_base_treatment == i.split(" || ")[0]:
@@ -191,31 +208,43 @@ else:  # Check their pairwise input file
             if cur_base_run == i.split(" || ")[1]:
                 base_run_exists = True
 
-            if cur_stim_treatment == i.split(" || ")[0] and cur_stim_run == i.split(" || ")[1]:
+            if (
+                cur_stim_treatment == i.split(" || ")[0]
+                and cur_stim_run == i.split(" || ")[1]
+            ):
                 stim_run_treatment_match = True
-            if cur_base_treatment == i.split(" || ")[0] and cur_base_run == i.split(" || ")[1]:
+            if (
+                cur_base_treatment == i.split(" || ")[0]
+                and cur_base_run == i.split(" || ")[1]
+            ):
                 base_run_treatment_match = True
 
         if not base_run_treatment_match:
             print(
-                f"error in pairwise tsv on line \"{line}\" \n{cur_base_treatment} doesn't belong to the {cur_base_run} run.")
+                f'error in pairwise tsv on line "{line}" \n{cur_base_treatment} doesn\'t belong to the {cur_base_run} run.'
+            )
             if not base_run_exists:
                 print(
-                    f"error in pairwise tsv on line \"{line}\" \n{cur_base_run} run doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in pairwise tsv on line "{line}" \n{cur_base_run} run doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             if not base_treatment_exists:
                 print(
-                    f"error in pairwise tsv on line \"{line}\" \n{cur_base_treatment} treatment doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in pairwise tsv on line "{line}" \n{cur_base_treatment} treatment doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             exit()
 
         if not stim_run_treatment_match:
             print(
-                f"error in pairwise tsv on line \"{line}\" \n{cur_stim_treatment} doesn't belong to the {cur_stim_run} run.")
+                f'error in pairwise tsv on line "{line}" \n{cur_stim_treatment} doesn\'t belong to the {cur_stim_run} run.'
+            )
             if not stim_run_exists:
                 print(
-                    f"error in pairwise tsv on line \"{line}\" \n{cur_stim_run} run doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in pairwise tsv on line "{line}" \n{cur_stim_run} run doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             if not stim_treatment_exists:
                 print(
-                    f"error in pairwise tsv on line \"{line}\" \n{cur_stim_treatment} treatment doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in pairwise tsv on line "{line}" \n{cur_stim_treatment} treatment doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             exit()
 
     run_pairwise = True
@@ -229,7 +258,9 @@ else:  # Check their pairwise input file
 # If they didn't enter a multi TSV
 run_multi = False
 if not multi_comps:
-    manual_pairwise = input("\nWould you like to manually input multi comparisons? (y/n): ")
+    manual_pairwise = input(
+        "\nWould you like to manually input multi comparisons? (y/n): "
+    )
     check_y_n_inp(manual_pairwise)
     if manual_pairwise == "y":
         print("id\ttreatment\trun")
@@ -240,13 +271,15 @@ if not multi_comps:
         print("***********************************")
         print("Now, enter the multivariate comparisons that you want to make")
         print("Enter the numbers corresponding to the treatments you want to compare")
-        print("Separate the two numbers with a comma e.g. \"1,2,4,5\"")
-        print("Enter \"done\" when finished")
-        print("Enter \"menu\" to see list again")
+        print('Separate the two numbers with a comma e.g. "1,2,4,5"')
+        print('Enter "done" when finished')
+        print('Enter "menu" to see list again')
         print("\n")
 
         getTreatments = True
-        multi_comparison_name = f"entered_multi_comparisons/multi_comparisons_{dt_string}.tsv"
+        multi_comparison_name = (
+            f"entered_multi_comparisons/multi_comparisons_{dt_string}.tsv"
+        )
         multi_f = open(multi_comparison_name, "w+")
         head = "id\ttreatment\trun\n"
         multi_f.write(head)
@@ -254,7 +287,8 @@ if not multi_comps:
         iter_id = 0
         while getTreatments:
             comp = input(
-                "Enter multi comparisons separated by commas \"1,2,4,5\" (Type \"done\" after entering all comparisons): ")
+                'Enter multi comparisons separated by commas "1,2,4,5" (Type "done" after entering all comparisons): '
+            )
             if comp.lower() == "done":
                 break
             if comp.lower() == "menu":
@@ -293,11 +327,11 @@ else:  # If their multi-input file
                 print(f"multi input file, {multi_comps} doesn't have correct header")
             continue
         if len(line.split("\t")) != 3:
-            print(f"\"{line}\" from multi input file doesn't follow the correct format")
+            print(f'"{line}" from multi input file doesn\'t follow the correct format')
             exit()
         cur_id, cur_treament, cur_run = line.split("\t")
         if not cur_id.isnumeric():
-            print(f"error in multi tsv on line \"{line}\" \nid column must be numeric")
+            print(f'error in multi tsv on line "{line}" \nid column must be numeric')
             exit()
 
         run_exists = False
@@ -305,7 +339,6 @@ else:  # If their multi-input file
         run_treatment_match = False
 
         for i in treatment_list:
-
             if cur_treament == i.split(" || ")[0]:
                 treatment_exists = True
 
@@ -316,13 +349,17 @@ else:  # If their multi-input file
                 run_treatment_match = True
 
         if not run_treatment_match:
-            print(f"error in multi tsv on line \"{line}\" \n{cur_treament} doesn't belong to the {cur_run} run.")
+            print(
+                f'error in multi tsv on line "{line}" \n{cur_treament} doesn\'t belong to the {cur_run} run.'
+            )
             if not run_exists:
                 print(
-                    f"error in multi tsv on line \"{line}\" \n{cur_run} run doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in multi tsv on line "{line}" \n{cur_run} run doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             if not treatment_exists:
                 print(
-                    f"error in multi tsv on line \"{line}\" \n{cur_treament} treatment doesn't exist. Check to make sure you entered the name correctly.")
+                    f'error in multi tsv on line "{line}" \n{cur_treament} treatment doesn\'t exist. Check to make sure you entered the name correctly.'
+                )
             exit()
 
     run_multi = True
@@ -335,18 +372,20 @@ else:  # If their multi-input file
 
 if run_pairwise:
     if not pairwise_comps:  # IE they didn't enter a TSV
-        os.system(f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads} {runs_directory}")
+        os.system(
+            f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads} {runs_directory}"
+        )
     else:  # They did enter a TSV
-        os.system(f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}")
+        os.system(
+            f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}"
+        )
 
 if run_multi:
     if not multi_comps:  # IE they didn't enter a TSV
-        os.system(f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads} {runs_directory}")
+        os.system(
+            f"Rscript scripts/run_multi_comparisons.R ./{multi_comparison_name} {threads} {runs_directory}"
+        )
     else:  # They did enter a TSV
-        os.system(f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads} {runs_directory}")
-
-# TODO
-# Fix run treatment dict
-# Test flags
-# In R scripts
-# Spit out things that missing architectures
+        os.system(
+            f"Rscript scripts/run_multi_comparisons.R {multi_comps} {threads} {runs_directory}"
+        )
