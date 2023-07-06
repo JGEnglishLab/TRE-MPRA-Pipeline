@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import argparse
+from argparse import RawTextHelpFormatter
 from datetime import datetime
 import help_txt as ht
 
@@ -16,6 +17,7 @@ def check_y_n_inp(inp, correction_message="Try again"):
 
 DEFAULT_THREADS = 1
 parser = argparse.ArgumentParser(
+    formatter_class=RawTextHelpFormatter,
     prog="set up comparisons", description="Takes optional input of comparison Tsvs"
 )
 
