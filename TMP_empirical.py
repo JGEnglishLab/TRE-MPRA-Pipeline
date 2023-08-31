@@ -182,9 +182,10 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
         A boolean if the DNA TSV is correct
         An error message
     """
-
+    line_count = 0
     error_msg = ""
     for line in tsv:
+
         if line.isspace():
             continue
         try:
@@ -193,6 +194,12 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
         except:
             error_msg = "Error in DNA TSV, must be tab separated."
             return False, error_msg
+        line_count += 1
+
+        if line_count == 1:
+            if DNA_num != "DNA_sample_number" or RNA_num != "RNA_sample_number":
+                error_msg = "Error in DNA TSV, the header must be \nDNA_sample_number\tRNA_sample_number"
+                return False, error_msg
 
         if not DNA_num.isnumeric():
             error_msg = (
@@ -458,10 +465,8 @@ else:
 #                   	CREATE DIRECTORIES
 ###########################################################################
 ###########################################################################
-os.system(f"mkdir -p ./runs/{dir_name}/mpra_input")
 os.system(f"mkdir -p ./runs/{dir_name}/raw_counts")
-os.system(f"mkdir -p ./runs/{dir_name}/rna_dna_samples")
-os.system(f"mkdir -p ./runs/{dir_name}/run_descriptive_stats")
+os.system(f"mkdir -p ./runs/{dir_name}/run_stats")
 os.system(f"mkdir -p ./runs/{dir_name}/star_code")
 
 # Used for files that need to be merged
@@ -650,7 +655,6 @@ files = res_list = [y for x in [paired_files, un_paired_files] for y in x]
 fileSamplePair = {}
 all_sample_numbers = []
 
-
 for f in files:
     reg_res = re.findall(pattern + "\d+", f)
     if check_regex(reg_res, pattern):
@@ -737,46 +741,11 @@ sf.write(
 STARCODE_DIR = "star_code/"
 SCRIPTS_DIR = "../../scripts/"
 BARCODE_MAP_DIR = "../../barcode_map_data/"
-DESCRIPTIVE_STATS_DIR = "run_descriptive_stats/"
-RNA_DNA_DIR = "rna_dna_samples/"
+DESCRIPTIVE_STATS_DIR = "run_stats/"
 RAW_COUNTS = "raw_counts/"
-MPRA_INPUT_DIR = "mpra_input/"
 
-rule create_alphas:
-	message: "Running MPRAnalyze to create alpha files"
-	input: 
-		rc = MPRA_INPUT_DIR + "rna_counts.csv",
-		dc = MPRA_INPUT_DIR + "dna_counts.csv",
-		rdv = MPRA_INPUT_DIR + "rna_depth_vals.csv",
-		ddv = MPRA_INPUT_DIR + "dna_depth_vals.csv",
-		ti = MPRA_INPUT_DIR + "treatment_id.csv",
-		ca = MPRA_INPUT_DIR + "col_annotations.csv",
-		md = "metaData.csv",
-
-	output: "{dir_name}__empirical_results.csv"
-	shell: "Rscript " + SCRIPTS_DIR + "run_empirical_SM.R \u007binput.rc\u007d \u007binput.dc\u007d \u007binput.ti\u007d \u007binput.ca\u007d \u007binput.rdv\u007d \u007binput.ddv\u007d \u007binput.md\u007d {threads}"
-
-rule make_mpra_input:
-	message: "Creating input for MPRAnalyze"
-	input: 
-		ad = RNA_DNA_DIR + "all_data_filtered.csv", 
-		ds = RNA_DNA_DIR + "dna_samples.csv", 
-		rs = RNA_DNA_DIR + "rna_samples.csv", 
-		md = "metaData.csv",
-		bcm = BARCODE_MAP_DIR + "finalBarcodeMap.csv"
-	output:
-		MPRA_INPUT_DIR + "dna_depth.csv",
-		MPRA_INPUT_DIR + "rna_counts.csv",
-		MPRA_INPUT_DIR + "rna_depth_vals.csv",
-		MPRA_INPUT_DIR + "dna_depth_vals.csv",
-		MPRA_INPUT_DIR + "dna_counts.csv",
-		MPRA_INPUT_DIR + "treatment_id.csv",
-		MPRA_INPUT_DIR + "rna_depth.csv",
-		MPRA_INPUT_DIR + "col_annotations.csv"
-	shell: "Rscript " + SCRIPTS_DIR + "make_mpra_input_SM.R \u007binput.bcm\u007d \u007binput.ad\u007d \u007binput.rs\u007d \u007binput.ds\u007d \u007binput.md\u007d {abs_dna_tsv_path} {abs_spike_path}"
-
-rule make_dna_and_rna_samples:
-	message: "Creating images about run and generating dna and rna samples"
+rule run_quantitative_analysis:
+	message: "Creating stats about run and running MPRAnalyze"
 	input: 
 		sc = dynamic(STARCODE_DIR + "analyzed_out_sample\u007bn3\u007d_mapped_sc_out.tsv"),
 		md = "metaData.csv",
@@ -784,20 +753,19 @@ rule make_dna_and_rna_samples:
 	output: 
 		DESCRIPTIVE_STATS_DIR + "filtering_ratios.png",
 		DESCRIPTIVE_STATS_DIR + "type_ratios.png",
-		DESCRIPTIVE_STATS_DIR + "spike_in_stats.png",
 		DESCRIPTIVE_STATS_DIR + "dna_per_barcode.png",
-		DESCRIPTIVE_STATS_DIR + "pre_filtering_barcodes.csv",
-		DESCRIPTIVE_STATS_DIR + "spike_in_stats.csv",
-		RNA_DNA_DIR + "all_data_filtered.csv", 
-		RNA_DNA_DIR + "dna_samples.csv", 
-		RNA_DNA_DIR + "rna_samples.csv", 
-	shell: "Rscript " + SCRIPTS_DIR + "make_sample_files_SM.R \u007binput.md\u007d \u007binput.bcm\u007d {abs_spike_path} \u007binput.sc\u007d"
+		DESCRIPTIVE_STATS_DIR + "pre_filter_data.csv",
+		DESCRIPTIVE_STATS_DIR + "run_summary.csv",
+		"{dir_name}__empirical_results.csv",
+		"MPRA_data.csv"
+
+	shell: "Rscript " + SCRIPTS_DIR + "run_quantitative_analysis_SM.R \u007binput.md\u007d \u007binput.bcm\u007d {abs_spike_path} {abs_dna_tsv_path} {threads} \u007binput.sc\u007d"
 
 rule analyze_starcode:
 	message: "Analyzing Starcode"
 	input: dynamic(STARCODE_DIR + "sample\u007bn2\u007d_mapped_sc_out.tsv")
 	output: dynamic(STARCODE_DIR + "analyzed_out_sample\u007bn3\u007d_mapped_sc_out.tsv")
-	shell: "python " + SCRIPTS_DIR + "analyze_star_code_SM.py \u007binput\u007d"
+	shell: "python3 " + SCRIPTS_DIR + "analyze_star_code_SM.py \u007binput\u007d"
 
 rule run_starcode:
 	message: "Running Star Code"
@@ -822,7 +790,7 @@ if not merge:
 rule count_barcodes:
 	message: "Counting Barcodes"
 	output: dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
-	shell: "python " + SCRIPTS_DIR + "count_barcodes_SM.py {fastq_path}"
+	shell: "python3 " + SCRIPTS_DIR + "count_barcodes_SM.py {fastq_path}"
 	"""
     )
 
@@ -833,14 +801,14 @@ rule count_barcodes:
 	message: "Counting Barcodes"
 	input: "fastqs_joined.txt"
 	output: dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
-	shell: "python " + SCRIPTS_DIR + "count_barcodes_SM.py file_info.csv" 
+	shell: "python3 " + SCRIPTS_DIR + "count_barcodes_SM.py file_info.csv" 
 	
 rule join_fastqs:
 	message: "Joining Fastq's"
 	output: "fastqs_joined.txt"
 	input: "fastqs_trimmed.txt"
 	run: 
-		shell("python " + SCRIPTS_DIR + "fastq_join_SM.py")
+		shell("python3 " + SCRIPTS_DIR + "fastq_join_SM.py")
 		shell("touch fastqs_joined.txt")
 
 rule trim_fastqs:
@@ -848,7 +816,7 @@ rule trim_fastqs:
 	input: "file_info.csv"
 	output: "fastqs_trimmed.txt"
 	run: 
-		shell("python " + SCRIPTS_DIR + "fastq_trim_SM.py file_info.csv")
+		shell("python3 " + SCRIPTS_DIR + "fastq_trim_SM.py file_info.csv")
 		shell("touch fastqs_trimmed.txt")
 	"""
     )

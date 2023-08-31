@@ -39,11 +39,6 @@ runs_directory = vars(args)["r"]
 if not runs_directory.endswith("/"):
     runs_directory = runs_directory + "/"
 
-if not threads:
-    threads = DEFAULT_THREADS
-elif not threads.isnumeric():
-    print(f"Error in -n flag. Must be numeric. Using default of {DEFAULT_THREADS}")
-    threads = DEFAULT_THREADS
 
 treatment_list = []  # Used for user manually creating comparisons
 run_treatment_dict = {}  # Used for checking an input TSV
@@ -52,12 +47,7 @@ run_treatment_dict = {}  # Used for checking an input TSV
 def check_if_run_ready(d):
     return (
         os.path.exists(f"{runs_directory}{d}/metaData.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/rna_counts.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/dna_counts.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/treatment_id.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/rna_depth.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/dna_depth.csv")
-        and os.path.exists(f"{runs_directory}{d}/mpra_input/col_annotations.csv")
+        and os.path.exists(f"{runs_directory}{d}/MPRA_data.csv")
     )
 
 
@@ -106,9 +96,7 @@ if not pairwise_comps:  # They will manually enter the pairwise comparisons
         print("***********************************")
         print("Now, enter the pairwise comparisons that you want to make")
         print("Enter the numbers corresponding to the treatments you want to compare")
-        print(
-            "The first treatment entered will be the base, the second with be the stimulated condition"
-        )
+        print("The first treatment entered will be the base, the second with be the stimulated condition")
         print('Separate the two numbers with a comma e.g. "1,2"')
         print('Enter "done" when finished')
         print('Enter "menu" to see list again')
