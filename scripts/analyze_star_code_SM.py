@@ -3,7 +3,6 @@ import statistics
 import sys
 
 #Read in barcode map
-#TODO consider passing the barcode map as snake make input
 bc_map = "finalBarcodeMap.csv"
 bc_map = "../../barcode_map_data/" + bc_map
 bc_map_file = open(bc_map, "r+")
@@ -23,7 +22,7 @@ for starCodeOutputName in sys.argv:
 
 
 	#Starcode name will be in this format
-	#star_code/sample4_mapped_sc_out.tsv
+	#star_code/sample4_map_sc_out.tsv
 	if starCodeOutputName.endswith(".py"):
 		continue
 	print(starCodeOutputName)
@@ -31,7 +30,7 @@ for starCodeOutputName in sys.argv:
 
 	#Need output from pre_process_SM.R (pre starcode)
 	#Will be in this format
-	#star_code/sample4_mapped.tsv
+	#star_code/sample4_map.tsv
 	preStarcodeName = starCodeOutputName.replace("_sc_out.tsv", ".tsv")
 	print(preStarcodeName)
 
@@ -46,15 +45,15 @@ for starCodeOutputName in sys.argv:
 	pre_sc_file = open(preStarcodeName, "r+")
 	
 	curCountDict = {}
-	curMappedDict = {}
+	curMapDict = {}
 
 	for line in pre_sc_file:
 		line = line.split()
 		bc = line[0]
 		count = line[1]
-		mapped = line[2]
+		map = line[2]
 		curCountDict[bc] = count
-		curMappedDict[bc] = mapped
+		curMapDict[bc] = map
 	pre_sc_file.close()
 
 	#************************************
@@ -64,13 +63,13 @@ for starCodeOutputName in sys.argv:
 	mean_v = []
 	median_v = []
 	centroid_v = []
-	totalCollapsed_v = []
+	totalClustered_v = []
 	totalCount_v = []
 	centroidCount_v = []
-	centroidInMapped_v = []
-	collapseBarCodes_v = []
-	collapsedInMapped_v = []
-	collapseArchMatchesCentroid_v = []
+	centroidInMap_v = []
+	clusteredBarCodes_v = []
+	clusteredInMap_v = []
+	clusteredArchMatchesCentroid_v = []
 
 	for line in sc_out_file:
 		line = line.split()
@@ -79,73 +78,73 @@ for starCodeOutputName in sys.argv:
 
 		centroid = line[0]
 		totalCount = line[1]
-		totalCollapsed = len(allBarCodes)
+		totalClustered = len(allBarCodes)
 		centroidCount = curCountDict[centroid]
-		centroidInMapped = curMappedDict[centroid]
+		centroidInMap = curMapDict[centroid]
 
-		collapsedCounts = []
-		collapsedInMapped = []
-		collapsedBarCodes = []
+		clusteredCounts = [] #Keep track of the total counts of all clustered barcodes (not the
+		clusteredInMap = [] #Keep track of all the clustered barcodes (not the centroid) that are also in the map
+		clusteredBarCodes = [] #Keep track of all clustered barcodes (not the centroid)
 		for bc in allBarCodes:
-			collapsedCounts.append(int(curCountDict[bc]))
+			clusteredCounts.append(int(curCountDict[bc]))
 			if bc != centroid:
-				collapsedBarCodes.append(bc)
-				if curMappedDict[bc] == "TRUE":
-					collapsedInMapped.append(bc)
+				clusteredBarCodes.append(bc)
+				if curMapDict[bc] == "TRUE":
+					clusteredInMap.append(bc)
 
 		
-		if len(collapsedInMapped) == 0:
-			collapsedInMapped.append("NULL")
+		if len(clusteredInMap) == 0:
+			clusteredInMap.append("NULL")
 
-		if len(collapsedBarCodes) == 0:
-			collapsedBarCodes.append("NULL")
-			collapseArchMatchesCentroid_v.append("Ignore")
-		elif centroidInMapped == "TRUE":
+		if len(clusteredBarCodes) == 0:
+			clusteredBarCodes.append("NULL")
+			clusteredArchMatchesCentroid_v.append("NULL")
+		elif centroidInMap == "TRUE":
 			centroid_arch = bc_dict[centroid]
-			collapse_same_arch = True
+			clustered_same_arch = True
 
-			if collapsedInMapped[0] != "NULL":
-				for bc in collapsedInMapped:
+			if clusteredInMap[0] != "NULL":
+				for bc in clusteredInMap:
 					if bc_dict[bc] != centroid_arch:
-						collapse_same_arch = False
-				if collapse_same_arch:
-					collapseArchMatchesCentroid_v.append("TRUE")
+						clustered_same_arch = False
+				if clustered_same_arch:
+					clusteredArchMatchesCentroid_v.append("TRUE")
 				else:
-					collapseArchMatchesCentroid_v.append("FALSE")
+					clusteredArchMatchesCentroid_v.append("FALSE")
 			else:
-				collapseArchMatchesCentroid_v.append("Ignore")
+				clusteredArchMatchesCentroid_v.append("NULL")
 		else:
-			collapseArchMatchesCentroid_v.append("Ignore")
+			clusteredArchMatchesCentroid_v.append("NULL")
 
 
-		mean = statistics.mean(collapsedCounts)
-		median = statistics.median(collapsedCounts)
+		mean = statistics.mean(clusteredCounts)
+		median = statistics.median(clusteredCounts)
 
 		mean_v.append(mean)
 		median_v.append(median)
 		centroid_v.append(centroid)
-		totalCollapsed_v.append(totalCollapsed)
+		totalClustered_v.append(totalClustered)
 		totalCount_v.append(totalCount)
 		centroidCount_v.append(centroidCount)
-		centroidInMapped_v.append(centroidInMapped)
-		collapseBarCodes_v.append(",".join(collapsedBarCodes))
-		collapsedInMapped_v.append(",".join(collapsedInMapped))
+		centroidInMap_v.append(centroidInMap)
+		clusteredBarCodes_v.append(",".join(clusteredBarCodes))
+		clusteredInMap_v.append(",".join(clusteredInMap))
 
 	sc_out_file.close()
 
 	outPut = open(outputName, "w+")
-	outPut.write("means\tmedians\ttotalCollapsed\ttotalCounts\tcentroid\tcentroidCounts\tcentroidInMapped\tcollapsedBarcodes\tarchitecturesMatch\tcollapsedInMapped\n")
+	outPut.write("mean_cluster_count\tmedian_cluster_count\ttotal_clustered\ttotal_counts\tcentroid\tcentroid_counts\tcentroid_in_map\tclustered_barcodes\tarchitectures_match\tclustered_in_map\n")
 	for i in range(len(mean_v)):
 		newLine = (str(mean_v[i]) + "\t" +
 					str(median_v[i]) + "\t" + 
-					str(totalCollapsed_v[i]) + "\t" +
+					str(totalClustered_v[i]) + "\t" +
 					str(totalCount_v[i]) + "\t" + 
 					centroid_v[i] + "\t" + 
 					centroidCount_v[i] + "\t" + 
-					centroidInMapped_v[i] + "\t" + 
-					collapseBarCodes_v[i] + "\t"+ 
-					collapseArchMatchesCentroid_v[i] + "\t"+ 
-					collapsedInMapped_v[i] + "\n")
+					centroidInMap_v[i] + "\t" +
+					clusteredBarCodes_v[i] + "\t"+
+					clusteredArchMatchesCentroid_v[i] + "\t"+
+					clusteredInMap_v[i] + "\n")
 
 		outPut.write(newLine)
 

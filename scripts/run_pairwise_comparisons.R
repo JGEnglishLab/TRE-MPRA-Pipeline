@@ -3,9 +3,9 @@ library(dplyr)
 library(MPRAnalyze)
 library(BiocParallel)
 
+
 RESULTS_DIR = "pairwise_results/"
 
-print(getwd())
 wd = getwd()
 args = commandArgs(trailingOnly=TRUE)
 
@@ -13,64 +13,35 @@ comps = read_tsv(args[1])
 param <- BatchtoolsParam(workers = args[2])
 runs_dir = args[3]
 
+#For testing
+# comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_30-08-2023_14-29.tsv")
+# param <- BatchtoolsParam(workers = 6)
+# runs_dir = "../runs/"
+##
 
 all_runs = unique(c(comps$base_run, comps$stim_run))
 
-rna_counts = data.frame()
-dna_counts = data.frame()
-treatment_ids = data.frame()
-rna_depth_factor = data.frame()
-dna_depth_factor = data.frame()
-col_ano = data.frame()
-# depth_cols = data.frame()
+all_run_data = data.frame()
 
 count = 0
+#Read in all the data from all the runs
 for (i in all_runs){
   count = count + 1
   if (count == 1){ #If its the first iteration, just initialize the dataframe
-    rna_counts = read_csv(paste0(runs_dir,i,"/mpra_input/rna_counts.csv"))
-    dna_counts = read_csv(paste0(runs_dir,i,"/mpra_input/dna_counts.csv"))
-    treatment_ids = read_csv(paste0(runs_dir,i,"/mpra_input/treatment_id.csv"))
-    rna_depth_factor = read_csv(paste0(runs_dir,i,"/mpra_input/rna_depth.csv"))
-    dna_depth_factor = read_csv(paste0(runs_dir,i,"/mpra_input/dna_depth.csv"))
-    # depth_cols = read_csv(paste0("runs/",i,"/mpra_input/depth_cols.csv"))
-    col_ano = read_csv(paste0(runs_dir,i,"/mpra_input/col_annotations.csv"))
+    all_run_data = read_csv(paste0(runs_dir,i,"/MPRA_data.csv")) %>% mutate(run = i)
     
   }
   else{ #If we are beyond the first iteration, join the data frames
-    rna_counts = full_join(read_csv(paste0(runs_dir,i,"/mpra_input/rna_counts.csv")), rna_counts)
-    dna_counts = full_join(read_csv(paste0(runs_dir,i,"/mpra_input/dna_counts.csv")), dna_counts)
-    treatment_ids = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/treatment_id.csv")), treatment_ids)
-    rna_depth_factor = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/rna_depth.csv")), rna_depth_factor)
-    dna_depth_factor = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/dna_depth.csv")), dna_depth_factor)
-    # depth_cols = rbind(read_csv(paste0("runs/",i,"/mpra_input/depth_cols.csv")), depth_cols)
-    col_ano = rbind(read_csv(paste0(runs_dir,i,"/mpra_input/col_annotations.csv")), col_ano)
-    
+    all_run_data = rbind(read_csv(paste0(runs_dir,i,"/MPRA_data.csv")) %>% mutate(run=i), all_run_data)
   }
 }
 
-#Re-calculate the RNA and DNA depth factors now that we've combined 
-rna_depth_factor %>%
-  mutate(norm = uq / first(.$uq)) -> rna_depth_factor
-
-dna_depth_factor %>%
-  mutate(norm = uq / first(.$uq)) -> dna_depth_factor
 
 
-#Get bool vector of if each row is a control
-controls = grepl('^Spacer|^Scramble', rna_counts$architecture)
-
-stopifnot(nrow(dna_counts) == nrow(rna_counts))
-architecture_order = dna_counts$architecture
-
-#Configure the row names
-dna_counts %>% remove_rownames %>% column_to_rownames(var="architecture") -> dna_counts
-rna_counts %>% remove_rownames %>% column_to_rownames(var="architecture") -> rna_counts
-
-for (id_iter in comps$id){
+for (comp_id in comps$id){
 
   comps %>% 
-    filter(id == id_iter) -> cur_row
+    filter(id == comp_id) -> cur_row
   
   base_treatment = cur_row$base_treatment
   base_run = cur_row$base_run
@@ -78,87 +49,151 @@ for (id_iter in comps$id){
   stim_treatment = cur_row$stim_treatment
   stim_run = cur_row$stim_run
   
-  base_t_id = (treatment_ids %>% filter(run == base_run, treatment == base_treatment))$t_id
-  stim_t_id = (treatment_ids %>% filter(run == stim_run, treatment == stim_treatment))$t_id
-  regex = paste0(base_t_id,"\\.|",stim_t_id,"\\.") 
+  #Filter the data for just the two treatments in the comparison
+  all_run_data %>% 
+    filter((treatment == base_treatment | treatment == stim_treatment) &(run == stim_run | run == base_run)) -> cur_comp_data
   
-  name_csv = paste0(RESULTS_DIR, base_treatment, "__",base_run ,"_vs_",stim_treatment, "__",stim_run)
-  name_csv = gsub(' ','_',name_csv)
+  #Get rna replicate numbers
+  cur_comp_data %>% ungroup() %>% 
+    select(RNA_sample_number, treatment, run) %>% 
+    unique() %>%
+    group_by(treatment, run) %>% 
+    reframe(replicate_n = row_number(), RNA_sample_number = RNA_sample_number) %>%
+    right_join(cur_comp_data) -> cur_comp_data
   
-  grep(regex, colnames(rna_counts)) -> split_indices
-  cur_depth_cols <- colnames(rna_counts[split_indices])
+  #Get treatment numbers
+  treatment = c(base_treatment, stim_treatment)
+  run = c(base_run, stim_run)
+  treatment_n = c(1,2) #There will only be two treatments, and we want the base treatment to be 1
+  treatment_numbers = tibble(treatment, run, treatment_n)
   
-  # Get depth columns
-  rna_depth = c()
-  dna_depth = c()
-  for (i in cur_depth_cols){
-    cur_run = str_split(i, "_",  n = 2)[[1]][1]
-    sample_batch_info = str_split(i, "_",  n = 2)[[1]][2]
-    cur_condition = str_split(i, "\\.", n = 2)[[1]][1]
-    cur_batch = str_split(sample_batch_info, "\\.")[[1]][2]
+  treatment_numbers %>%
+    right_join(cur_comp_data)  -> cur_comp_data 
+  
+  #Check to see if DNA from the two treatments is the same
+  dna1 = cur_comp_data %>%
+    filter(treatment == base_treatment, run == base_run) %>%
+    select(DNA_count, architecture, class, barcode) %>%
+    arrange(DNA_count, architecture, class, barcode)
+  
+  dna2 = cur_comp_data %>%
+    filter(treatment == stim_treatment, run == stim_run) %>%
+    select(DNA_count, DNA_rpm, architecture, class, barcode) %>%
+    arrange(DNA_count, DNA_rpm, architecture, class, barcode)
+  
+  same_DNA = identical(dna1,dna2)
+  
+  if (same_DNA){
+    #Pivot all data to get DNA_mat for MPRAnalyze
+    cur_comp_data %>% 
+      select(DNA_count, architecture, barcode_n, class) %>% 
+      unique() %>%
+      pivot_wider(id_cols = c("architecture", "class"), 
+                  values_from = c("DNA_count"), 
+                  names_from = c("barcode_n"),
+                  names_sep = ":")-> dna_mat 
     
-    cur_rna_depth = as.double((rna_depth_factor %>%
-                                    filter(treatment == cur_condition, batch == as.character(cur_batch)))$norm)
-    cur_dna_name = (rna_depth_factor %>%
-                                 filter(treatment == cur_condition, batch == as.character(cur_batch)))$dna_name
-    rna_depth = c(rna_depth, cur_rna_depth)
-    
-    cur_dna_depth =  (dna_depth_factor %>% filter(run_name == cur_run, name == cur_dna_name))$norm
-    dna_depth = c(dna_depth, cur_dna_depth)
-  }
-  
-  as.data.frame(cur_depth_cols) -> new_col_ano
-  new_col_ano[c('conditions', 'batch', "barcode")] <- str_split_fixed(new_col_ano$cur_depth_cols, '\\.', 3)
-  new_col_ano <- data.frame(new_col_ano%>%select(-cur_depth_cols), row.names=new_col_ano$cur_depth_cols)
-  new_col_ano$condition <- as.factor(new_col_ano$condition)
-  new_col_ano$condition <- relevel(new_col_ano$condition, base_t_id) #The condition must be a factor with base first
-  new_col_ano=new_col_ano %>%select(-conditions)
-  complete_obj <- MpraObject(dnaCounts = as.matrix(dna_counts[split_indices]),
-                             rnaCounts = as.matrix(rna_counts[split_indices]),
-                             dnaAnnot = as.data.frame(new_col_ano),
-                             rnaAnnot = as.data.frame(new_col_ano),
-                             controls = controls)
-  
-  
-  
-  #We will have to fix this to get the dna depth for two comparisons..
-  complete_obj = setDepthFactors(complete_obj, dnaDepth = dna_depth, rnaDepth = rna_depth)
-  
-  
-  if (length(unique(new_col_ano$batch)) > 1){ #If more than one batch is present us it in comparison
-    comp_obj <- analyzeComparative(obj = complete_obj,
-                                   dnaDesign = ~ barcode + batch + condition,
-                                   rnaDesign = ~ condition,
-                                   reducedDesign = ~ 1, 
-                                   BPPARAM = param)
+   
   } else{
-    comp_obj <- analyzeComparative(obj = complete_obj, 
-                                   dnaDesign = ~ barcode + condition, 
-                                   rnaDesign = ~ condition, 
-                                   reducedDesign = ~ 1,
-                                   BPPARAM = param)
+    
+    cur_comp_data %>% 
+      select(DNA_count, architecture, barcode_n, class, treatment_n) %>% 
+      unique() %>%
+      pivot_wider(id_cols = c("architecture", "class"), 
+                  values_from = c("DNA_count"), 
+                  names_from = c("barcode_n", "treatment_n"),
+                  names_sep = ":")-> dna_mat 
+    
   }
   
-  res <- testLrt(comp_obj)
-  res$architecture = row.names(res)
+  #Pivot all data to get RNA_mat for MPRAnalyze
+  cur_comp_data %>% 
+    select(RNA_count, architecture, barcode_n, replicate_n, treatment_n, class) %>%
+    pivot_wider(id_cols = c("architecture", "class"), 
+                values_from = c("RNA_count"), 
+                names_from = c("barcode_n", "replicate_n", "treatment_n"), 
+                names_sep = ":")-> rna_mat  
   
-  write_csv(res, paste0(name_csv,'.csv'))
   
-  #Get the architectures that are completely missing from each treatment type
-  rna_counts[split_indices] %>% 
-    rownames_to_column(var="architecture")  %>% 
-    pivot_longer(cols = -architecture) %>% 
-    mutate(treatment = str_extract(name, "^[^.]+"))   %>%
-    select(-name) %>%
+  #Extract control booleans
+  controls = rna_mat$class == "scramble" | rna_mat$class == "spacer"
+  
+  #Make the rna col annotations
+  cur_comp_data %>% 
+    select(barcode_n, replicate_n, treatment_n) %>% 
+    unique() -> rna_col_ano
+  
+  rna_col_ano$barcode = as.factor(rna_col_ano$barcode_n)
+  rna_col_ano$batch = as.factor(rna_col_ano$replicate_n)
+  rna_col_ano$condition = as.factor(rna_col_ano$treatment_n)
+
+  rna_col_ano %>% select(barcode,batch,condition) -> rna_col_ano
+  
+  #Make dna col annotations
+  if(same_DNA){
+    dna_col_ano = as.data.frame(cur_comp_data %>% select(barcode_n) %>% unique())
+    dna_col_ano$barcode = as.factor(dna_col_ano$barcode_n)
+    dna_col_ano %>% select(barcode) -> dna_col_ano
+  } else{
+    cur_comp_data %>% 
+      select(barcode_n, treatment_n) %>% 
+      unique() -> dna_col_ano
+    
+    dna_col_ano$barcode = as.factor(dna_col_ano$barcode_n)
+    dna_col_ano$condition = as.factor(dna_col_ano$treatment_n)
+    
+    dna_col_ano %>% select(barcode,condition) -> dna_col_ano
+  }
+  
+  rna_mat %>% select(-class) %>% column_to_rownames("architecture") -> ready_rna_mat
+  dna_mat %>% select(-class) %>% column_to_rownames("architecture") -> ready_dna_mat
+  
+  #Replace all NAs with 0
+  ready_rna_mat[is.na(ready_rna_mat)] <- 0
+  ready_dna_mat[is.na(ready_dna_mat)] <- 0
+  
+  
+  ################################################################################
+  #                              RUN MPRAnalyze
+  ################################################################################
+  obj <- MpraObject(dnaCounts = as.matrix(head(ready_dna_mat)), rnaCounts = as.matrix(head(ready_rna_mat)), 
+                    dnaAnnot = as.data.frame(dna_col_ano), rnaAnnot = as.data.frame(rna_col_ano), 
+                    controls = controls, 
+                    BPPARAM = param)
+  
+  obj <- estimateDepthFactors(obj, lib.factor = c("condition", "batch"),
+                              which.lib = "rna", 
+                              depth.estimator = "uq")
+  
+  if (!same_DNA){
+    obj <- estimateDepthFactors(obj, lib.factor = c("condition"),
+                                which.lib = "dna", 
+                                depth.estimator = "uq")
+  }
+  if (same_DNA){
+    obj <- analyzeComparative(obj = obj,
+                                  dnaDesign = ~ barcode,
+                                  rnaDesign = ~ condition,
+                                  BPPARAM = param,
+                                  reducedDesign = ~ 1)
+  } else{
+    obj <- analyzeComparative(obj = obj,
+                              dnaDesign = ~ barcode + condition,
+                              rnaDesign = ~ condition,
+                              BPPARAM = param,
+                              reducedDesign = ~ 1)
+  }
+  
+  lrt <- testLrt(obj)
+  lrt$architecture = row.names(lrt)
+  
+  cur_comp_data %>% 
     group_by(architecture, treatment) %>% 
-    summarise(sum = sum(value))  %>%
-    filter(sum == 0) %>% 
-    left_join(treatment_ids, by=c("treatment" = "t_id")) %>%
-    select(-treatment, -sum) %>%
-    rename(treatment = treatment.y) %>%
-    arrange(treatment, run) -> missing_architectures
+    summarise(DNA_barcodes = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
+    pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment, names_prefix = "n_") -> architecture_summary
   
-  write_csv(missing_architectures, paste0(name_csv,'__missing_architectures.csv'))
-  
-  
+    left_join(architecture_summary, lrt) -> lrt
+    
+    write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
+    
 }
