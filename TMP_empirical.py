@@ -200,6 +200,7 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
             if DNA_num != "DNA_sample_number" or RNA_num != "RNA_sample_number":
                 error_msg = "Error in DNA TSV, the header must be \nDNA_sample_number\tRNA_sample_number"
                 return False, error_msg
+            continue
 
         if not DNA_num.isnumeric():
             error_msg = (

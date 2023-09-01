@@ -156,7 +156,7 @@ for (comp_id in comps$id){
   ################################################################################
   #                              RUN MPRAnalyze
   ################################################################################
-  obj <- MpraObject(dnaCounts = as.matrix(head(ready_dna_mat)), rnaCounts = as.matrix(head(ready_rna_mat)), 
+  obj <- MpraObject(dnaCounts = as.matrix(ready_dna_mat), rnaCounts = as.matrix(ready_rna_mat),
                     dnaAnnot = as.data.frame(dna_col_ano), rnaAnnot = as.data.frame(rna_col_ano), 
                     controls = controls, 
                     BPPARAM = param)
