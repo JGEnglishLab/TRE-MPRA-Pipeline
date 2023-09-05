@@ -272,8 +272,7 @@ if (only_1_dna){ #If there is only one DNA sample do a simple join
    
 } else{ #If there is > 1 DNA sample number, we need the DNA TSV to pair the DNA and the RNA
   dnaTSV = read_tsv(dnaTSV, cols(.default = col_character()), col_names = T)
-  print(dnaTSV)
-  rnaSamples %>% 
+  rnaSamples %>%
     select(RNA_sample_number, treatment) %>%
     unique() %>%
     full_join(dnaTSV) -> dnaTSV
