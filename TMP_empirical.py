@@ -824,5 +824,11 @@ rule trim_fastqs:
 
 sf.close()
 
+print("Starting snakemake")
+sys.stdout.flush()
+
+
 command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
 os.system(command)
+
+print("Empirical analysis finished!")
