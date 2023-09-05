@@ -373,7 +373,7 @@ for (cur_treatment in unique(ad$treatment)){
   
   #Get empircal results
   emp_res <- testEmpirical(obj = obj,statistic = alpha$`1`) #There will only be one condition at a time
-  colnames(emp_res) <- paste(cur_treatment, colnames(emp_res), sep = "_")
+  colnames(emp_res) <- paste(colnames(emp_res),cur_treatment, sep = "_")
   
   emp_res$architecture = row.names(alpha)
   

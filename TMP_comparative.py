@@ -96,10 +96,10 @@ if not pairwise_comps:  # They will manually enter the pairwise comparisons
         print("***********************************")
         print("Now, enter the pairwise comparisons that you want to make")
         print("Enter the numbers corresponding to the treatments you want to compare")
-        print("The first treatment entered will be the base, the second with be the stimulated condition")
+        print("The first treatment entered will be the basal treatment, the second will be the stimulated treatment")
         print('Separate the two numbers with a comma e.g. "1,2"')
         print('Enter "done" when finished')
-        print('Enter "menu" to see list again')
+        print('Enter "menu" to see the list of treatments again')
         print("\n")
 
         getTreatments = True
@@ -263,7 +263,7 @@ if not multi_comps:
         print("Enter the numbers corresponding to the treatments you want to compare")
         print('Separate the two numbers with a comma e.g. "1,2,4,5"')
         print('Enter "done" when finished')
-        print('Enter "menu" to see list again')
+        print('Enter "menu" to see the list of treatments again')
         print("\n")
 
         getTreatments = True
