@@ -297,9 +297,9 @@ for (cur_treatment in unique(ad$treatment)){
   #Get the number of RNA and DNA barcodes for each architecture
   cur_data %>% 
     group_by(architecture, treatment) %>% 
-    summarise("n_DNA_barcodes_" = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
-    pivot_wider(values_from = RNA_barcodes, names_from = treatment,  names_prefix = "n_RNA_barcodes_")-> architecture_summary
-  names(architecture_summary)[names(architecture_summary) == "n_DNA_barcodes_"] <- paste0("n_DNA_barcodes_", cur_treatment)
+    summarise("DNA_barcodes_" = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>%
+    pivot_wider(values_from = RNA_barcodes, names_from = treatment,  names_prefix = "RNA_barcodes_")-> architecture_summary
+  names(architecture_summary)[names(architecture_summary) == "DNA_barcodes_"] <- paste0("DNA_barcodes_", cur_treatment)
 
   #Get rna replicate numbers
   cur_data%>% ungroup() %>% 
@@ -389,7 +389,7 @@ for (cur_treatment in unique(ad$treatment)){
 
 
 all_emp_res %>% 
-  select(-ends_with("control")) %>% 
+  select(-starts_with("control")) %>%
   mutate(controls = startsWith(.$architecture, "Spacer") | startsWith(.$architecture, "Scramble")) -> all_emp_res
 
 

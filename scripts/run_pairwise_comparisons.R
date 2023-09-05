@@ -190,7 +190,7 @@ for (comp_id in comps$id){
   cur_comp_data %>% 
     group_by(architecture, treatment) %>% 
     summarise(DNA_barcodes = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
-    pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment, names_prefix = "n_") -> architecture_summary
+    pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment) -> architecture_summary
   
     left_join(architecture_summary, lrt) -> lrt
     
