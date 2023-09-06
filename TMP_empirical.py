@@ -311,6 +311,12 @@ while "_" in dir_name:
         "Change the name of the run so it does not include any underscores: "
     )
 
+while " " in dir_name:
+    print('The name of the run cannot include spaces')
+    dir_name = input(
+        "Change the name of the run so it does not include any spaces: "
+    )
+
 while os.path.exists(f"./runs/{dir_name}"):
     print(f"The run {dir_name} already exists!")
     print("Adding date time to run name")
@@ -495,7 +501,7 @@ if ignore_path:
     ignore_file = open(abs_ignore_path, "r+")
 
     for f in ignore_file:
-        ignore_files.append(f)
+        ignore_files.append(f.strip())
 
 
 ###########################################################################
