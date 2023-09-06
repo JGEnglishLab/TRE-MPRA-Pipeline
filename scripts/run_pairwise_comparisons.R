@@ -14,9 +14,9 @@ param <- BatchtoolsParam(workers = args[2])
 runs_dir = args[3]
 
 #For testing
-# comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_30-08-2023_14-29.tsv")
-# param <- BatchtoolsParam(workers = 6)
-# runs_dir = "../runs/"
+comps = read_tsv("./comp.tsv")
+param <- BatchtoolsParam(workers = 5)
+runs_dir = "../../../mpra_final_data/"
 ##
 
 all_runs = unique(c(comps$base_run, comps$stim_run))
@@ -74,12 +74,14 @@ for (comp_id in comps$id){
   dna1 = cur_comp_data %>%
     filter(treatment == base_treatment, run == base_run) %>%
     select(DNA_count, architecture, class, barcode) %>%
-    arrange(DNA_count, architecture, class, barcode)
+    unique() %>%
+    arrange(barcode, class, architecture, DNA_count)
   
   dna2 = cur_comp_data %>%
     filter(treatment == stim_treatment, run == stim_run) %>%
-    select(DNA_count, DNA_rpm, architecture, class, barcode) %>%
-    arrange(DNA_count, DNA_rpm, architecture, class, barcode)
+    select(DNA_count, architecture, class, barcode) %>% 
+    unique() %>%
+    arrange(barcode, class, architecture, DNA_count)
   
   same_DNA = identical(dna1,dna2)
   
