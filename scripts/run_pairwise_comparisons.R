@@ -14,9 +14,9 @@ param <- BatchtoolsParam(workers = args[2])
 runs_dir = args[3]
 
 #For testing
-comps = read_tsv("./comp.tsv")
-param <- BatchtoolsParam(workers = 5)
-runs_dir = "../../../mpra_final_data/"
+# comps = read_tsv("./comp.tsv")
+# param <- BatchtoolsParam(workers = 25)
+# runs_dir = "../../../mpra_final_data/"
 ##
 
 all_runs = unique(c(comps$base_run, comps$stim_run))
