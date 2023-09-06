@@ -1,0 +1,15 @@
+install.packages('tidyverse')
+install.packages('dplyr')
+install.packages('stringr')
+install.packages('testit')
+install.packages('png')
+install.packages('ggplot')
+install.packages('batchtools')
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("BiocParallel")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("MPRAnalyze")
