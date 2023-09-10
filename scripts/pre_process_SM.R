@@ -9,7 +9,7 @@ wd = getwd()
 args = commandArgs(trailingOnly=TRUE)
 
 #Read in meta data (From snakemake)
-mData=read_csv(args[1])
+mData=read_tsv(args[1])
 
 #Read in barcode map (From snakemake)
 barcodeMap=read_csv(args[2])
@@ -18,38 +18,32 @@ barcodeMap=read_csv(args[2])
 STARCODE_DIR = paste0(wd,"/star_code")
 print(STARCODE_DIR)
 
-#Adds a sample replicate column to meta data
-#The first time a treatment type is in mData it will be labled as replicate 1
-#Each subsequent time that treatment is seen it will be labled as the next replecate
-mData$sampleReplicate = 999
-sampleNumbers = as.array(mData$sampleNumber)
-for (file in mData$fileName){
-  curSampleNumber = (mData %>% filter(fileName == file))$sampleNumber
-  curReplicateSum = sum(sampleNumbers == curSampleNumber)
+#Adds a sample lane column to meta data
+#Samples of the same number but different file name (different lanes) will be added
+mData %>% 
+  select(sampleNumber, fileName) %>% 
+  unique() %>%
+  group_by(sampleNumber) %>% 
+  reframe(lane = row_number(), fileName = fileName) %>%
+  right_join(mData) -> mData
 
-  for (i in 1:length(sampleNumbers)){
-    if (sampleNumbers[i] == curSampleNumber){
-      sampleNumbers = sampleNumbers[-i]
-      break
-    }
-  }
-  mData[mData$fileName == file,]$sampleReplicate = curReplicateSum
-}
  
 #Created new merged column
-mData$merged = paste0(mData$sampleNumber,"_",mData$sampleReplicate)
+mData$merged = paste0(mData$sampleNumber,"_",mData$lane)
 
-#Read in all the raw data
+#Create empty file to hold all the raw data
 longFile <- data.frame(matrix(ncol = 3, nrow = 0))
 
+#Read in all the raw data
 for (file in mData$fileName){
   row = mData[mData$fileName == file,]
-  n = paste0(row$sampleNumber,"_",row$sampleReplicate)
+  n = paste0(row$sampleNumber,"_",row$lane)
   file_loc = paste0(PATH_TO_INPUT_CSVS, file)
   curFile = read_csv(file_loc, col_names = F) %>% mutate(name=n)
   longFile = rbind(longFile,curFile)
 }
 
+#Pivot the data 
 longFile %>% pivot_wider(names_from = name, values_from = X2) %>%
   rename(barcode = X1) -> wideFile
 wideFile[is.na(wideFile)] <-0
@@ -61,7 +55,7 @@ for (i in unique(mData$sampleNumber)){
   tables_written = tables_written + 1
   sampleName = paste0("sample",i)
   curFile = wideFile %>% select("barcode", ((mData %>% filter(sampleNumber == i))$merged))
-  curFile[, sampleName]= rowSums(curFile[ ,-1])
+  curFile[, sampleName]= rowSums(curFile[ ,-1]) #Sum up lanes
 
   curFile %>%
     select(barcode,sampleName) %>%
@@ -74,4 +68,4 @@ for (i in unique(mData$sampleNumber)){
 }
 
 
-write_csv(mData, "metaData.csv")
+write_tsv(mData, "metaData.tsv")

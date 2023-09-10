@@ -55,7 +55,7 @@ addType <- function(f, sampleNumber){
 args = commandArgs(trailingOnly=TRUE)
 
 #Read in meta data
-mData=read_csv(args[1])
+mData=read_tsv(args[1])
 
 #Read in barcode map
 barcodeMap=read_csv(args[2])
@@ -77,19 +77,22 @@ param = BatchtoolsParam(workers = args[5])
 
 #For editing
 ####
-# mData=read_csv("../runs/20250/metaData.csv")
-# barcodeMap=read_csv("../barcode_map_data/finalBarcodeMap.csv")
-# barcodeMap %>%
-#   mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%
-#   select(architecture, barcode, class)-> barcodeMap
-# spikeFile="None"
-# dnaTSV="None"
-# threads=4
-# param = BatchtoolsParam(workers = threads)
-# files = c("../runs/20250/star_code/analyzed_out_sample1_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample2_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample3_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample21_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample24_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample50_mapped_sc_out.tsv")
-# #files = c("../runs/20250/star_code/analyzed_out_sample29_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample30_mapped_sc_out.tsv")
-# dnaTSV = read_tsv("../../20250_dna_map_full.tsv", cols(.default = col_character()), col_names = T)
+mData=read_tsv("../runs/yo3/metaData.tsv")
+barcodeMap=read_csv("../barcode_map_data/finalBarcodeMap.csv")
+barcodeMap %>%
+  mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%
+  select(architecture, barcode, class)-> barcodeMap
+spikeFile="None"
+dnaTSV="None"
+threads=4
+param = BatchtoolsParam(workers = threads)
+#files = c("../runs/20250/star_code/analyzed_out_sample1_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample2_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample3_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample21_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample24_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample50_mapped_sc_out.tsv")
+#files = c("../runs/20250/star_code/analyzed_out_sample29_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample30_mapped_sc_out.tsv")
+ files = c("../runs/yo3/star_code/analyzed_out_sample8_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample43_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample42_mapped_sc_out.tsv")
+dnaTSV = read_tsv("../test_data/run1_dna_map.tsv", cols(.default = col_character()), col_names = T)
+# 
 
+#Rscript ../../scripts/run_quantitative_analysis_SM.R metaData.tsv ../../barcode_map_data/finalBarcodeMap.csv None /Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/test_data/run1_dna_map.tsv 12 star_code/analyzed_out_sample8_mapped_sc_out.tsv star_code/analyzed_out_sample6_mapped_sc_out.tsv star_code/analyzed_out_sample3_mapped_sc_out.tsv star_code/analyzed_out_sample5_mapped_sc_out.tsv star_code/analyzed_out_sample43_mapped_sc_out.tsv star_code/analyzed_out_sample1_mapped_sc_out.tsv star_code/analyzed_out_sample2_mapped_sc_out.tsv star_code/analyzed_out_sample42_mapped_sc_out.tsv
 ####
 
 
@@ -391,6 +394,19 @@ for (cur_treatment in unique(ad$treatment)){
 all_emp_res %>% 
   select(-starts_with("control")) %>%
   mutate(controls = startsWith(.$architecture, "Spacer") | startsWith(.$architecture, "Scramble")) -> all_emp_res
+
+if (unique(mData$time) != "None"){
+  mData %>% 
+    select(time, treatment) %>% 
+    unique() %>% 
+    pivot_wider(names_from = treatment, names_prefix = "time_", values_from = time) %>% right_join()
+}
+
+
+mData %>% 
+  select(treatment, run_name, long_name, cell_type, concentration, time, cell_type, run_name) %>% 
+  unique() %>%
+  write_csv(paste0(unique(mData$run_name),"__meta_data.csv"))
 
 
 write_csv(all_emp_res, paste0(unique(mData$run_name),"__empirical_results.csv"))
