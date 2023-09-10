@@ -2,6 +2,9 @@ import os
 import sys
 import re
 import numpy as np
+import pandas as pd
+from pandas.api.types import is_string_dtype
+from pandas.api.types import is_numeric_dtype
 import argparse
 from argparse import RawTextHelpFormatter
 import time as t
@@ -113,64 +116,143 @@ def diff_reads(a, b):
 
 def check_treatment_tsv(tsv):
     """
-    :param tsv: the tsv input by the user containing sample numbers and treatment types
+    :param tsv: a path to the tsv input by the user containing sample numbers and treatment types
     :return: a tuple
         a bool if correct or not
         a treatment dictionary
         a list of all sample numbers
         and an error or success message
     """
-    treatments = {}
-    sample_list = []
-    for line in tsv:
-        if line.isspace():
-            continue
-        try:
-            sample_number = line.split("\t")[0]
-            treatment_type = line.split("\t")[1]
-        except:
-            return (
-                False,
-                treatments,
-                sample_list,
-                "Treatment TSV must have two columns separated by a tab",
-            )
 
-        if not sample_number.isnumeric():
-            return (
-                False,
-                treatments,
-                sample_list,
-                "Treatment TSV must contain numeric sample numbers in first column.",
-            )
+    df = pd.read_csv(tsv, sep='\t')
 
-        if "_" in treatment_type or "/" in treatment_type or "|" in treatment_type:
-            return (
-                False,
-                treatments,
-                sample_list,
-                'Treatments may not contain "/", "|", "_" characters.',
-            )
+    #Make sure it includes the required columns
+    if not "sample_number" in df.columns and not "short_name" in df.columns:
+        return (
+            False,None,None,
+            "Treatment TSV must \"sample_number\" and \"short_name\" columns",
+            None,None,None,None
+        )
 
-        if bool(re.search(r"\s{2,99}", treatment_type)):
-            return (
-                False,
-                treatments,
-                sample_list,
-                "Treatments may not contain more than one space",
-            )
+    #Make sure that the sample_number column is only numeric
+    if not is_numeric_dtype(df['sample_number']):
+        return (
+            False,None,None,
+            "Error in Treatment TSV, \"sample_number\" column must be numeric",
+            None,None,None,None
+        )
 
-        if sample_number in sample_list:
-            return (
-                False,
-                treatments,
-                sample_list,
-                "Treatment TSV may not contain the same sample number more than once.",
-            )
+    #Make sure that the sample numbers are all unique
+    if not all(df['sample_number'].unique()) == all(df['sample_number']):
+        return (
+            False,None,None,
+            "Error in Treatment TSV, \"sample_number\" column must have no repeated values",
+            None,None,None,None,
+        )
 
-        sample_list.append(sample_number)
-        treatments[sample_number.strip()] = treatment_type.strip()
-    return True, treatments, sample_list, "Treatment TSV looks good"
+    #Make sure that the short names don't contain any illegal chars
+    bad_chars = ["#","%","&","{","}","<",">","*","?","/","\\","$","'","!","\""," ", ":","@","+","`","|","=",","]
+    for name in df["short_name"]:
+        if not all(x not in name for x in bad_chars):
+            return (
+                False,None,None,
+                "Error in Treatment TSV, \"short_name\" column may not contain any of the following characters\n#_%&{}<>*?/\ $'!\":@+`|=,",
+                None,None,None,None
+            )
+    #Make sure there are no commas
+    if any(any(df[col].astype(str).str.contains(",")) for col in df.columns):
+        return (
+            False,None,None,
+            "Error in Treatment TSV, no commas (,) are allowed in the Treatment TSV",
+            None,None,None,None
+        )
+    # If cell type exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="short_name")["cell_type"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] ==1):
+            return (
+                False,None,None,
+                "Error in Treatment TSV, cell types must be the same for replicates",
+                None,None,None,None
+            )
+    except KeyError:
+        pass
+
+    # If concentration exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="short_name")["concentration"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] ==1):
+            return (
+                False,None,None,
+                "Error in Treatment TSV, concentration must be the same for replicates of the same treatment (short name)",
+                None,None,None,None
+            )
+    except KeyError:
+        pass
+
+    # If time exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="short_name")["time"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] == 1):
+            return (
+                False, None, None,
+                "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
+                None, None, None, None
+            )
+    except KeyError:
+        pass
+
+    # If time exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="short_name")["time"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] == 1):
+            return (
+                False, None, None,
+                "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
+                None, None, None, None
+            )
+    except KeyError:
+        pass
+
+    # If long_name exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="short_name")["long_name"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] == 1):
+            return (
+                False, None, None,
+                "Error in Treatment TSV, long name must be the same for replicates of the same treatment (short name)",
+                None, None, None, None
+            )
+    except KeyError:
+        pass
+
+    #Make dictionary with sample numer and short names
+    treatments = dict(zip(df.sample_number, df.short_name))
+    sample_list = list(df["sample_number"])
+
+    #Make dictionaries out of optional columns
+    try:
+        long_names = dict(zip(df.sample_number, df.long_name))
+    except:
+        long_names = dict.fromkeys(df.sample_number)
+
+    try:
+        concentrations = dict(zip(df.sample_number, df.concentration))
+    except:
+        concentrations = dict.fromkeys(df.sample_number)
+
+    try:
+        times = dict(zip(df.sample_number, df.time))
+    except:
+        times = dict.fromkeys(df.sample_number)
+
+    try:
+        cell_types = dict(zip(df.sample_number, df.cell_type))
+    except:
+        cell_types = dict.fromkeys(df.sample_number)
+
+
+    return True, treatments, sample_list, "Treatment TSV looks good", long_names, concentrations, times, cell_types
 
 
 def check_DNA_tsv(tsv, dna_samples, rna_samples):
@@ -182,42 +264,25 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
         A boolean if the DNA TSV is correct
         An error message
     """
-    line_count = 0
-    error_msg = ""
-    for line in tsv:
 
-        if line.isspace():
-            continue
-        try:
-            DNA_num = line.split("\t")[0].strip()
-            RNA_num = line.split("\t")[1].strip()
-        except:
-            error_msg = "Error in DNA TSV, must be tab separated."
-            return False, error_msg
-        line_count += 1
+    df = pd.read_csv(tsv, sep='\t')
 
-        if line_count == 1:
-            if DNA_num != "DNA_sample_number" or RNA_num != "RNA_sample_number":
-                error_msg = "Error in DNA TSV, the header must be \nDNA_sample_number\tRNA_sample_number"
-                return False, error_msg
-            continue
+    if not "DNA_sample_number" in df.columns and not "RNA_sample_number" in df.columns:
+        error_msg = "Error in DNA TSV, the header must be \nDNA_sample_number\tRNA_sample_number"
+        return False, error_msg
 
-        if not DNA_num.isnumeric():
-            error_msg = (
-                "Error in DNA TSV, DNA column (col 1) must only contain numbers."
-            )
-            return False, error_msg
-        if not RNA_num.isnumeric():
-            error_msg = (
-                "Error in DNA TSV, RNA column (col 2) must only contain numbers."
-            )
-            return False, error_msg
-        if DNA_num not in dna_samples:
-            error_msg = f"Error in DNA TSV, sample {DNA_num} found in DNA column (col 1). This isn't a DNA sample according to sample TSV"
-            return False, error_msg
-        if RNA_num not in rna_samples:
-            error_msg = f"Error in DNA TSV, sample {RNA_num} found in RNA column (col 2). This isn't an RNA sample according to sample TSV"
-            return False, error_msg
+    if not is_numeric_dtype(df['DNA_sample_number']) and not is_numeric_dtype(df["RNA_sample_number"]):
+        error_msg = "Columns must be numeric"
+        return False, error_msg
+
+    if not sorted(dict.fromkeys(list(df["DNA_sample_number"]))) == sorted(dna_samples):
+        error_msg = f"Error in DNA TSV, the DNA sample numbers in DNA TSV don't match DNA sample numbers in treatment TSV"
+        return False, error_msg
+
+    if not sorted(dict.fromkeys(list(df["RNA_sample_number"]))) == sorted(rna_samples):
+        error_msg = f"Error in DNA TSV, the RNA sample numbers in DNA TSV don't match RNA sample numbers in treatment TSV"
+        return False, error_msg
+
 
     return True, "DNA TSV looks good!"
 
@@ -341,17 +406,13 @@ while not legal_path:
     )
 print("Treatment TSV found!")
 
-treatment_tsv = open(treatment_tsv_path, "r")
-correct_tsv, treatments, tsv_sample_numbers, msg = check_treatment_tsv(treatment_tsv)
+# treatment_tsv = open(treatment_tsv_path, "r")
+correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types= check_treatment_tsv(treatment_tsv_path)
 while not correct_tsv:
-    treatment_tsv.close()
     print("Error with treatment TSV provided")
     print(msg)
     _ = input('Check format and and try again (Enter "y" to continue)')
-    treatment_tsv = open(treatment_tsv_path, "r")
-    correct_tsv, treatments, tsv_sample_numbers, msg = check_treatment_tsv(
-        treatment_tsv
-    )
+    correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types= check_treatment_tsv(treatment_tsv_path)
 
 noDNAProvided = True
 DNA_sample_num = []
@@ -382,25 +443,21 @@ if len(DNA_sample_num) > 1:  # Multiple DNA sample detected.
         print("see --help flag for more info")
         exit()
 
-    legal_path = os.path.exists(dna_tsv_path) and bool(
-        re.search(r".tsv(/)?$", dna_tsv_path)
-    )
+    legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
     while not legal_path:
         print(f"DNA tsv not found in {dna_tsv_path}")
         dna_tsv_path = input("Check path and enter it again: ")
-        legal_path = os.path.exists(dna_tsv_path) and bool(
-            re.search(r".tsv(/)?$", dna_tsv_path)
-        )
+        legal_path = os.path.exists(dna_tsv_path) and bool(re.search(r".tsv(/)?$", dna_tsv_path))
     print("DNA tsv found!")
 
-    DNA_tsv = open(dna_tsv_path, "r")
-    correct_tsv, error_msg = check_DNA_tsv(DNA_tsv, DNA_sample_num, RNA_sample_num)
+    # DNA_tsv = open(dna_tsv_path, "r")
+    correct_tsv, error_msg = check_DNA_tsv(dna_tsv_path, DNA_sample_num, RNA_sample_num)
     while not correct_tsv:
-        DNA_tsv.close()
+        # DNA_tsv.close()
         print(error_msg)
         _ = input('Check format and and try again (Enter "y" to continue)')
-        DNA_tsv = open(dna_tsv_path, "r")
-        correct_tsv, error_msg = check_DNA_tsv(DNA_tsv, DNA_sample_num, RNA_sample_num)
+        # DNA_tsv = open(dna_tsv_path, "r")
+        correct_tsv, error_msg = check_DNA_tsv(dna_tsv_path, DNA_sample_num, RNA_sample_num)
     print(error_msg)
     abs_dna_tsv_path = os.popen(f"readlink -f {dna_tsv_path}").read().strip()
 
@@ -681,9 +738,7 @@ for f in files:
             all_sample_numbers.append(sample_number)
 
 # Check to see if sample number detected from files and sample numbers from treatment TSV match
-tsv_sample_numbers.sort()
-all_sample_numbers.sort()
-if tsv_sample_numbers != all_sample_numbers:
+if tsv_sample_numbers.sort() != list(map(int, all_sample_numbers)).sort():
     print(
         "The sample numbers provided in treatment TSV and the sample numbers detected from files do not match!\n"
     )
@@ -720,13 +775,20 @@ if tsv_sample_numbers != all_sample_numbers:
         if fileSamplePair[file] not in joined_sample_numbers:
             del fileSamplePair[file]
 
-f = open(f"./runs/{dir_name}/metaData.csv", "w+")
-f.write("fileName,sampleNumber,treatment,run_name\n")
 
-# Write CSV
+
+f = open(f"./runs/{dir_name}/metaData.tsv", "w+")
+f.write("fileName\tsampleNumber\ttreatment\trun_name\tlong_name\tconcentration\ttime\tcell_type\n")
+
+
+print("Ok")
+treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types
+
+# Write TSV
 for file in fileSamplePair:
     #File, sample#, treatment name, run_name
-    line = (f"{file},{fileSamplePair[file]},{treatments[fileSamplePair[file]]},{dir_name}\n")
+    line = (f"{file}\t{fileSamplePair[file]}\t{treatments[int(fileSamplePair[file])]}\t{dir_name}\t{long_names[int(fileSamplePair[file])]}\t{concentrations[int(fileSamplePair[file])]}\t{times[int(fileSamplePair[file])]}\t{cell_types[int(fileSamplePair[file])]}\n")
+    print(line)
     f.write(line)
 
 f.close()
@@ -755,7 +817,7 @@ rule run_quantitative_analysis:
 	message: "Creating stats about run and running MPRAnalyze"
 	input: 
 		sc = dynamic(STARCODE_DIR + "analyzed_out_sample\u007bn3\u007d_mapped_sc_out.tsv"),
-		md = "metaData.csv",
+		md = "metaData.tsv",
 		bcm = BARCODE_MAP_DIR + "finalBarcodeMap.csv"
 	output: 
 		DESCRIPTIVE_STATS_DIR + "filtering_ratios.png",
@@ -783,7 +845,7 @@ rule run_starcode:
 rule make_starcode_input:
 	message: "Processing input csv's before starcode"
 	input: 
-		md = "metaData.csv",
+		md = "metaData.tsv",
 		bcm = BARCODE_MAP_DIR + "finalBarcodeMap.csv",
 		rc = dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
 	output: dynamic(STARCODE_DIR + "sample\u007bn1\u007d_mapped.tsv")
