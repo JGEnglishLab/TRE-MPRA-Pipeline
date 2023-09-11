@@ -86,13 +86,9 @@ param = BatchtoolsParam(workers = args[5])
 # dnaTSV="None"
 # threads=4
 # param = BatchtoolsParam(workers = threads)
-# #files = c("../runs/20250/star_code/analyzed_out_sample1_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample2_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample3_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample21_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample24_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample50_mapped_sc_out.tsv")
-# #files = c("../runs/20250/star_code/analyzed_out_sample29_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample42_mapped_sc_out.tsv","../runs/20250/star_code/analyzed_out_sample30_mapped_sc_out.tsv")
-#  files = c("../runs/yo3/star_code/analyzed_out_sample8_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample43_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample42_mapped_sc_out.tsv")
+# files = c("../runs/yo3/star_code/analyzed_out_sample8_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample43_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample42_mapped_sc_out.tsv")
 # dnaTSV = read_tsv("../test_data/run1_dna_map.tsv", cols(.default = col_character()), col_names = T)
-# # 
 
-#Rscript ../../scripts/run_quantitative_analysis_SM.R metaData.tsv ../../barcode_map_data/finalBarcodeMap.csv None /Volumes/external_disk/english_lab/TRE-MPRA-Pipeline/test_data/run1_dna_map.tsv 12 star_code/analyzed_out_sample8_mapped_sc_out.tsv star_code/analyzed_out_sample6_mapped_sc_out.tsv star_code/analyzed_out_sample3_mapped_sc_out.tsv star_code/analyzed_out_sample5_mapped_sc_out.tsv star_code/analyzed_out_sample43_mapped_sc_out.tsv star_code/analyzed_out_sample1_mapped_sc_out.tsv star_code/analyzed_out_sample2_mapped_sc_out.tsv star_code/analyzed_out_sample42_mapped_sc_out.tsv
 ####
 
 
@@ -297,13 +293,7 @@ for (cur_treatment in unique(ad$treatment)){
   
   ad %>% filter(treatment == cur_treatment) -> cur_data
   
-  #Get the number of RNA and DNA barcodes for each architecture
-  cur_data %>% 
-    group_by(architecture, treatment) %>% 
-    summarise("DNA_barcodes_" = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>%
-    pivot_wider(values_from = RNA_barcodes, names_from = treatment,  names_prefix = "RNA_barcodes_")-> architecture_summary
-  names(architecture_summary)[names(architecture_summary) == "DNA_barcodes_"] <- paste0("DNA_barcodes_", cur_treatment)
-
+  
   #Get rna replicate numbers
   cur_data%>% ungroup() %>% 
     select(RNA_sample_number, treatment) %>% 
@@ -312,6 +302,21 @@ for (cur_treatment in unique(ad$treatment)){
     reframe(replicate_n = row_number(), RNA_sample_number = RNA_sample_number) %>%
     right_join(cur_data) -> cur_data
   
+  
+  #Get the number of RNA and DNA barcodes for each architecture
+  cur_data %>% 
+    group_by(architecture, treatment) %>% 
+    summarise("DNA_barcodes_" = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>%
+    pivot_wider(values_from = RNA_barcodes, names_from = treatment,  names_prefix = "RNA_barcodes_")-> architecture_summary
+  names(architecture_summary)[names(architecture_summary) == "DNA_barcodes_"] <- paste0("DNA_barcodes_", cur_treatment)
+  
+  #Make sure that all barcode numbers will be counted as barcodes per replicate
+  n_dna_name = paste0("DNA_barcodes_", cur_treatment)
+  n_rna_name = paste0("RNA_barcodes_", cur_treatment)
+  architecture_summary[n_dna_name] = architecture_summary[n_dna_name] / max(cur_data$replicate_n)
+  architecture_summary[n_rna_name] = architecture_summary[n_rna_name] / max(cur_data$replicate_n)
+  
+
   #Because there is only one treatment
   cur_data$treatment_n = 1
 
@@ -394,13 +399,6 @@ for (cur_treatment in unique(ad$treatment)){
 all_emp_res %>% 
   select(-starts_with("control")) %>%
   mutate(controls = startsWith(.$architecture, "Spacer") | startsWith(.$architecture, "Scramble")) -> all_emp_res
-
-if (unique(mData$time) != "None"){
-  mData %>% 
-    select(time, treatment) %>% 
-    unique() %>% 
-    pivot_wider(names_from = treatment, names_prefix = "time_", values_from = time) %>% right_join()
-}
 
 
 mData %>% 
