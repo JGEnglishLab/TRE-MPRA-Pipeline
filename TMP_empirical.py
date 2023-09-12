@@ -130,7 +130,7 @@ def check_treatment_tsv(tsv):
     if not "sample_number" in df.columns and not "short_name" in df.columns:
         return (
             False,None,None,
-            "Treatment TSV must \"sample_number\" and \"short_name\" columns",
+            "Treatment TSV must contains \"sample_number\" and \"short_name\" columns",
             None,None,None,None
         )
 
@@ -169,7 +169,7 @@ def check_treatment_tsv(tsv):
     # If cell type exists, make sure that they are the same for all replicates
     try:
         s = df.groupby(by="short_name")["cell_type"].nunique()
-        if not all(s.loc[~(s.index == "DNA")] ==1):
+        if not all(s.loc[~(s.index == "DNA")] <=1):
             return (
                 False,None,None,
                 "Error in Treatment TSV, cell types must be the same for replicates",
@@ -181,7 +181,7 @@ def check_treatment_tsv(tsv):
     # If concentration exists, make sure that they are the same for all replicates
     try:
         s = df.groupby(by="short_name")["concentration"].nunique()
-        if not all(s.loc[~(s.index == "DNA")] ==1):
+        if not all(s.loc[~(s.index == "DNA")] <=1):
             return (
                 False,None,None,
                 "Error in Treatment TSV, concentration must be the same for replicates of the same treatment (short name)",
@@ -193,7 +193,7 @@ def check_treatment_tsv(tsv):
     # If time exists, make sure that they are the same for all replicates
     try:
         s = df.groupby(by="short_name")["time"].nunique()
-        if not all(s.loc[~(s.index == "DNA")] == 1):
+        if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
                 "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
@@ -205,7 +205,7 @@ def check_treatment_tsv(tsv):
     # If time exists, make sure that they are the same for all replicates
     try:
         s = df.groupby(by="short_name")["time"].nunique()
-        if not all(s.loc[~(s.index == "DNA")] == 1):
+        if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
                 "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
@@ -217,7 +217,7 @@ def check_treatment_tsv(tsv):
     # If long_name exists, make sure that they are the same for all replicates
     try:
         s = df.groupby(by="short_name")["long_name"].nunique()
-        if not all(s.loc[~(s.index == "DNA")] == 1):
+        if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
                 "Error in Treatment TSV, long name must be the same for replicates of the same treatment (short name)",
@@ -370,16 +370,10 @@ wd = os.getcwd()
 if not dir_name:
     dir_name = input("Enter the name of the run: ")
 
-while "_" in dir_name:
-    print('The name of the run cannot include "_"')
+while "_" in dir_name or " " in dir_name or "|" in dir_name:
+    print('The name of the run cannot include "_", spaces or "|"')
     dir_name = input(
-        "Change the name of the run so it does not include any underscores: "
-    )
-
-while " " in dir_name:
-    print('The name of the run cannot include spaces')
-    dir_name = input(
-        "Change the name of the run so it does not include any spaces: "
+        "Change the name of the run so it does not include any \"_\", spaces or \"|\": "
     )
 
 while os.path.exists(f"./runs/{dir_name}"):
