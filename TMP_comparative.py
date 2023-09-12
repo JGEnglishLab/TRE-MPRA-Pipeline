@@ -39,10 +39,7 @@ runs_directory = vars(args)["r"]
 if not runs_directory.endswith("/"):
     runs_directory = runs_directory + "/"
 
-
 treatment_list = []  # Used for user manually creating comparisons
-run_treatment_dict = {}  # Used for checking an input TSV
-
 
 def check_if_run_ready(d):
     return (
@@ -50,12 +47,10 @@ def check_if_run_ready(d):
         and os.path.exists(f"{runs_directory}{d}/MPRA_data.csv")
     )
 
-
 for d in os.listdir(runs_directory):  # Loop through directories (ie run names)
     if d != ".DS_Store":
         if check_if_run_ready(d):
             md = pd.read_csv(f"{runs_directory}{d}/metaData.tsv", sep = "\t")
-            # treatments_runs_paired = md[["treatment", "run_name"]].drop_duplicates()
             cur_treatments = md.treatment.unique()
             for t in cur_treatments:
                 if t != "DNA":
@@ -66,7 +61,6 @@ counter = 0
 for i in treatment_list:
     counter += 1
     treatment_dict[counter] = i
-
 
 def print_menu():
     for key in treatment_dict:
