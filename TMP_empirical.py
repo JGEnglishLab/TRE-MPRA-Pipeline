@@ -130,7 +130,7 @@ def check_treatment_tsv(tsv):
     if not "sample_number" in df.columns and not "short_name" in df.columns:
         return (
             False,None,None,
-            "Treatment TSV must contains \"sample_number\" and \"short_name\" columns",
+            "Treatment TSV must contain \"sample_number\" and \"short_name\" columns",
             None,None,None,None
         )
 
