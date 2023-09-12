@@ -22,15 +22,14 @@ def t():
     Takes a path to the treatment TSV
     The path may be absolute or direct
     Treatment TSV is used to pair sample numbers with treatment names
-    The first column should correspond to sample numbers
-    The second column should correspond to treatment names
     At least one DNA sample must be present for the pipeline to work. All DNA samples should simply be labeled as "DNA"
     If you have multiple replicates of the same treatment they must be the same name
-    The sample names may not include "_" "/" or "|" characters 
-    The sample names may not include more than one consecutive space
-    Do not include a header for your tsv file
+    "sample_number" and "short_name" columns are required
+    "short_name" column may not include any of the following characters #_%&{}<>*?/\ $'!":@+`|=, or spaces
+    "long_name","concentration","time","cell_type" columns are optional, they are only for keeping track of your samples and they won't change the analysis
     See example of TSV below
-
+    
+    sample_number   short_name
     1   Serum Free
     2   Serum Free
     3   Serum Free
@@ -50,11 +49,12 @@ def dt():
     The path may be absolute or direct
     DNA TSV is only required if more than one DNA sample is present in treatment TSV
     The DNA TSV is used to specify which DNA samples correspond to which RNA samples
-    Do not include a header for your tsv file
+    The DNA TSV must include "DNA_sample_number" and "RNA_sample_number" columns
     The first column corresponds to DNA sample numbers, the second column corresponds to RNA sample numbers
     Each RNA sample must correspond to 1 and only 1 DNA sample
     If you had a treatment TSV that looked like the one above (see -t) you would create a DNA TSV like the one below
 
+    DNA_sample_number   RNA_sample_number
     6   1
     6   2
     6   3
@@ -130,7 +130,7 @@ def i():
     Each file name should appear on a separate line
     See example of ignore file
 
-    19919X5_S5_L001_R2_001.fastq.gz
+    19919X5_S5_L001_R1_001.fastq.gz
     19919X5_S5_L001_R2_001.fastq.gz
     undetermined.fq
     undetermined.fq
