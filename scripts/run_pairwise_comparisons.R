@@ -10,13 +10,13 @@ wd = getwd()
 args = commandArgs(trailingOnly=TRUE)
 
 comps = read_tsv(args[1])
-param <- BatchtoolsParam(workers = args[2])
+param <- MulticoreParam(workers = args[2])
 runs_dir = args[3]
 
 ###For testing
-comps = read_tsv("./pairwise_comparisons_13-09-2023_11-23.tsv")
-param <- BatchtoolsParam(workers = 25)
-runs_dir = "../runs/"
+# comps = read_tsv("./pairwise_comparisons_13-09-2023_11-23.tsv")
+# param <- BatchtoolsParam(workers = 25)
+# runs_dir = "../runs/"
 ###
 
 all_runs = unique(c(comps$base_run, comps$stim_run))

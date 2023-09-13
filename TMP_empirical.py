@@ -371,9 +371,9 @@ if not dir_name:
     dir_name = input("Enter the name of the run: ")
 
 while not all(x not in dir_name for x in BAD_CHARS):
-    print('The name of the run cannot include "_", spaces or "|"')
+    print('The name of the run cannot include spaces or any of the following characters \n#_%&{}<>*?/\ $\'!":@+`|=,')
     dir_name = input(
-        "Change the name of the run so it does not include any \"_\", spaces or \"|\": "
+        'Change the name of the run so it does not include spaces or any of the following characters \n#_%&{}<>*?/\ $\'!":@+`|=,\n:'
     )
 
 while os.path.exists(f"./runs/{dir_name}"):

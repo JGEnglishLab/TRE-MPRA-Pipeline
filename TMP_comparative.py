@@ -5,6 +5,11 @@ from argparse import RawTextHelpFormatter
 from datetime import datetime
 import help_txt as ht
 
+# import the time module
+import time
+
+
+
 
 def check_y_n_inp(inp, correction_message="Try again"):
     inp = inp.lower()
@@ -354,6 +359,10 @@ else:  # If their multi-input file
 # *****************************************************************************
 # *****************************************************************************
 
+
+t1 = time.time()
+
+
 if run_pairwise:
     if not pairwise_comps:  # IE they didn't enter a TSV
         os.system(
@@ -363,6 +372,8 @@ if run_pairwise:
         os.system(
             f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}"
         )
+
+    print(f"took {time.time() - t1} seconds")
 
 if run_multi:
     if not multi_comps:  # IE they didn't enter a TSV
