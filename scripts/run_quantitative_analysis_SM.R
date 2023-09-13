@@ -72,7 +72,7 @@ spikeFile=args[3]
 dnaTSV=args[4]
 
 #Read in the number of threads
-param = BatchtoolsParam(workers = args[5])
+param = MulticoreParam(workers = args[5])
 
 
 #For editing
