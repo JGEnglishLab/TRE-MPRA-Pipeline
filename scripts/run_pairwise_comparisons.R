@@ -13,11 +13,11 @@ comps = read_tsv(args[1])
 param <- BatchtoolsParam(workers = args[2])
 runs_dir = args[3]
 
-#For testing
-# comps = read_tsv("./comp.tsv")
-# param <- BatchtoolsParam(workers = 25)
-# runs_dir = "../../../mpra_final_data/"
-##
+###For testing
+comps = read_tsv("./pairwise_comparisons_13-09-2023_11-23.tsv")
+param <- BatchtoolsParam(workers = 25)
+runs_dir = "../runs/"
+###
 
 all_runs = unique(c(comps$base_run, comps$stim_run))
 
@@ -194,8 +194,27 @@ for (comp_id in comps$id){
     summarise(DNA_barcodes = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
     pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment) -> architecture_summary
   
-    left_join(architecture_summary, lrt) -> lrt
-    
-    write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
+  
+  #Make sure that all barcode numbers will be counted as barcodes per replicate
+  n_dna_base_name = paste0("DNA_barcodes_", base_treatment)
+  n_rna_base_name = paste0("RNA_barcodes_", base_treatment)
+  
+  n_dna_stim_name = paste0("DNA_barcodes_", stim_treatment)
+  n_rna_stim_name = paste0("RNA_barcodes_", stim_treatment)
+  
+  cur_comp_data %>% 
+    group_by(treatment) %>%
+    summarise(n_replicates = max(replicate_n)) -> n_replicates
+  
+  #Divide the number of barcodes by the number of replicates for each condition
+  architecture_summary[n_dna_base_name] = architecture_summary[n_dna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
+  architecture_summary[n_rna_base_name] = architecture_summary[n_rna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
+  architecture_summary[n_dna_stim_name] = architecture_summary[n_dna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
+  architecture_summary[n_rna_stim_name] = architecture_summary[n_rna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
+  
+
+  left_join(architecture_summary, lrt) -> lrt
+  
+  write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
     
 }

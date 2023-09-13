@@ -14,6 +14,7 @@ import help_txt as ht
 
 print("Running TMP_empirical")
 DEFAULT_THREADS = 1
+BAD_CHARS = ["#","%","&","{","}","<",">","*","?","/","\\","$","'","!","\""," ",":","@","+","`","|","=",","]
 
 
 def check_dir(
@@ -127,10 +128,10 @@ def check_treatment_tsv(tsv):
     df = pd.read_csv(tsv, sep='\t')
 
     #Make sure it includes the required columns
-    if not "sample_number" in df.columns and not "short_name" in df.columns:
+    if not "sample_number" in df.columns or not "treatment" in df.columns:
         return (
             False,None,None,
-            "Treatment TSV must contain \"sample_number\" and \"short_name\" columns",
+            "Treatment TSV must contain \"sample_number\" and \"treatment\" columns",
             None,None,None,None
         )
 
@@ -151,12 +152,11 @@ def check_treatment_tsv(tsv):
         )
 
     #Make sure that the short names don't contain any illegal chars
-    bad_chars = ["#","%","&","{","}","<",">","*","?","/","\\","$","'","!","\""," ", ":","@","+","`","|","=",","]
-    for name in df["short_name"]:
-        if not all(x not in name for x in bad_chars):
+    for name in df["treatment"]:
+        if not all(x not in name for x in BAD_CHARS):
             return (
                 False,None,None,
-                "Error in Treatment TSV, \"short_name\" column may not contain any of the following characters\n#_%&{}<>*?/\ $'!\":@+`|=,",
+                "Error in Treatment TSV, \"treatment\" column may not contain any of the following characters\n#_%&{}<>*?/\ $'!\":@+`|=,",
                 None,None,None,None
             )
     #Make sure there are no commas
@@ -168,7 +168,7 @@ def check_treatment_tsv(tsv):
         )
     # If cell type exists, make sure that they are the same for all replicates
     try:
-        s = df.groupby(by="short_name")["cell_type"].nunique()
+        s = df.groupby(by="treatment")["cell_type"].nunique()
         if not all(s.loc[~(s.index == "DNA")] <=1):
             return (
                 False,None,None,
@@ -180,7 +180,7 @@ def check_treatment_tsv(tsv):
 
     # If concentration exists, make sure that they are the same for all replicates
     try:
-        s = df.groupby(by="short_name")["concentration"].nunique()
+        s = df.groupby(by="treatment")["concentration"].nunique()
         if not all(s.loc[~(s.index == "DNA")] <=1):
             return (
                 False,None,None,
@@ -192,7 +192,7 @@ def check_treatment_tsv(tsv):
 
     # If time exists, make sure that they are the same for all replicates
     try:
-        s = df.groupby(by="short_name")["time"].nunique()
+        s = df.groupby(by="treatment")["time"].nunique()
         if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
@@ -204,7 +204,7 @@ def check_treatment_tsv(tsv):
 
     # If time exists, make sure that they are the same for all replicates
     try:
-        s = df.groupby(by="short_name")["time"].nunique()
+        s = df.groupby(by="treatment")["time"].nunique()
         if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
@@ -216,7 +216,7 @@ def check_treatment_tsv(tsv):
 
     # If long_name exists, make sure that they are the same for all replicates
     try:
-        s = df.groupby(by="short_name")["long_name"].nunique()
+        s = df.groupby(by="treatment")["long_name"].nunique()
         if not all(s.loc[~(s.index == "DNA")] <= 1):
             return (
                 False, None, None,
@@ -227,7 +227,7 @@ def check_treatment_tsv(tsv):
         pass
 
     #Make dictionary with sample numer and short names
-    treatments = dict(zip(df.sample_number, df.short_name))
+    treatments = dict(zip(df.sample_number, df.treatment))
     sample_list = list(df["sample_number"])
 
     #Make dictionaries out of optional columns
@@ -370,7 +370,7 @@ wd = os.getcwd()
 if not dir_name:
     dir_name = input("Enter the name of the run: ")
 
-while "_" in dir_name or " " in dir_name or "|" in dir_name:
+while not all(x not in dir_name for x in BAD_CHARS):
     print('The name of the run cannot include "_", spaces or "|"')
     dir_name = input(
         "Change the name of the run so it does not include any \"_\", spaces or \"|\": "
