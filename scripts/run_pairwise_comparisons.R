@@ -14,29 +14,12 @@ param <- MulticoreParam(workers = args[2])
 runs_dir = args[3]
 
 ###For testing
-# comps = read_tsv("./pairwise_comparisons_13-09-2023_11-23.tsv")
-# param <- BatchtoolsParam(workers = 25)
-# runs_dir = "../runs/"
+# RESULTS_DIR = "../pairwise_results/"
+# 
+# comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_14-09-2023_08-59.tsv")
+# param <- MulticoreParam(workers = 25)
+# runs_dir = "../../../mpra_final_data/"
 ###
-
-all_runs = unique(c(comps$base_run, comps$stim_run))
-
-all_run_data = data.frame()
-
-count = 0
-#Read in all the data from all the runs
-for (i in all_runs){
-  count = count + 1
-  if (count == 1){ #If its the first iteration, just initialize the dataframe
-    all_run_data = read_csv(paste0(runs_dir,i,"/MPRA_data.csv")) %>% mutate(run = i)
-    
-  }
-  else{ #If we are beyond the first iteration, join the data frames
-    all_run_data = rbind(read_csv(paste0(runs_dir,i,"/MPRA_data.csv")) %>% mutate(run=i), all_run_data)
-  }
-}
-
-
 
 for (comp_id in comps$id){
 
@@ -48,10 +31,12 @@ for (comp_id in comps$id){
   
   stim_treatment = cur_row$stim_treatment
   stim_run = cur_row$stim_run
-  
-  #Filter the data for just the two treatments in the comparison
-  all_run_data %>% 
-    filter((treatment == base_treatment | treatment == stim_treatment) &(run == stim_run | run == base_run)) -> cur_comp_data
+
+  rbind(
+  read_csv(paste0(runs_dir,base_run,"/MPRA_data.csv")) %>% mutate(run = base_run),
+  read_csv(paste0(runs_dir,stim_run,"/MPRA_data.csv")) %>% mutate(run=stim_run)) %>% 
+    filter((treatment == base_treatment & run == base_run ) | (run == stim_run & treatment == stim_treatment)) -> cur_comp_data
+
   
   #Get rna replicate numbers
   cur_comp_data %>% ungroup() %>% 
