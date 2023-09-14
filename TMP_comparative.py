@@ -353,10 +353,6 @@ else:  # If their multi-input file
 # *****************************************************************************
 # *****************************************************************************
 
-
-t1 = time.time()
-
-
 if run_pairwise:
     if not pairwise_comps:  # IE they didn't enter a TSV
         os.system(
