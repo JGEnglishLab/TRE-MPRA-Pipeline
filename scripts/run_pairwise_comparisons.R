@@ -15,7 +15,7 @@ runs_dir = args[3]
 
 ###For testing
 # RESULTS_DIR = "../pairwise_results/"
-# 
+# RESULTS_DIR = "../../../mpra_final_data/pairwise_results/"
 # comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_14-09-2023_08-59.tsv")
 # param <- MulticoreParam(workers = 25)
 # runs_dir = "../../../mpra_final_data/"
@@ -31,12 +31,18 @@ for (comp_id in comps$id){
   
   stim_treatment = cur_row$stim_treatment
   stim_run = cur_row$stim_run
+  
+  if (base_run != stim_run){
+    rbind(
+      read_csv(paste0(runs_dir,base_run,"/MPRA_data.csv")) %>% mutate(run = base_run),
+      read_csv(paste0(runs_dir,stim_run,"/MPRA_data.csv")) %>% mutate(run=stim_run)) %>% 
+        filter((treatment == base_treatment & run == base_run ) | (run == stim_run & treatment == stim_treatment)) -> cur_comp_data
+  } else{
+    read_csv(paste0(runs_dir,stim_run,"/MPRA_data.csv")) %>% mutate(run=stim_run) %>% 
+      filter((treatment == base_treatment & run == base_run ) | (run == stim_run & treatment == stim_treatment)) -> cur_comp_data
+  }
 
-  rbind(
-  read_csv(paste0(runs_dir,base_run,"/MPRA_data.csv")) %>% mutate(run = base_run),
-  read_csv(paste0(runs_dir,stim_run,"/MPRA_data.csv")) %>% mutate(run=stim_run)) %>% 
-    filter((treatment == base_treatment & run == base_run ) | (run == stim_run & treatment == stim_treatment)) -> cur_comp_data
-
+ 
   
   #Get rna replicate numbers
   cur_comp_data %>% ungroup() %>% 
@@ -69,6 +75,9 @@ for (comp_id in comps$id){
     arrange(barcode, class, architecture, DNA_count)
   
   same_DNA = identical(dna1,dna2)
+  dna1<-NULL
+  dna2<-NULL
+  gc() #return memory to the system
   
   if (same_DNA){
     #Pivot all data to get DNA_mat for MPRAnalyze
@@ -140,6 +149,37 @@ for (comp_id in comps$id){
   ready_dna_mat[is.na(ready_dna_mat)] <- 0
   
   
+  #Get the 
+  cur_comp_data %>% 
+    group_by(architecture, treatment) %>% 
+    summarise(DNA_barcodes = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
+    pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment) -> architecture_summary
+  
+  
+  #Make sure that all barcode numbers will be counted as barcodes per replicate
+  n_dna_base_name = paste0("DNA_barcodes_", base_treatment)
+  n_rna_base_name = paste0("RNA_barcodes_", base_treatment)
+  
+  n_dna_stim_name = paste0("DNA_barcodes_", stim_treatment)
+  n_rna_stim_name = paste0("RNA_barcodes_", stim_treatment)
+  
+  cur_comp_data %>% 
+    group_by(treatment) %>%
+    summarise(n_replicates = max(replicate_n)) -> n_replicates
+  
+  #Divide the number of barcodes by the number of replicates for each condition
+  architecture_summary[n_dna_base_name] = architecture_summary[n_dna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
+  architecture_summary[n_rna_base_name] = architecture_summary[n_rna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
+  architecture_summary[n_dna_stim_name] = architecture_summary[n_dna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
+  architecture_summary[n_rna_stim_name] = architecture_summary[n_rna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
+  
+  
+  rna_mat <- NULL
+  dna_mat <- NULL
+  cur_comp_data <- NULL
+  gc() #Return memory to system
+  
+  
   ################################################################################
   #                              RUN MPRAnalyze
   ################################################################################
@@ -173,33 +213,13 @@ for (comp_id in comps$id){
   
   lrt <- testLrt(obj)
   lrt$architecture = row.names(lrt)
-  
-  cur_comp_data %>% 
-    group_by(architecture, treatment) %>% 
-    summarise(DNA_barcodes = n(), RNA_barcodes = sum(!is.na(RNA_count))) %>% 
-    pivot_wider(values_from = c(RNA_barcodes, DNA_barcodes), names_from = treatment) -> architecture_summary
-  
-  
-  #Make sure that all barcode numbers will be counted as barcodes per replicate
-  n_dna_base_name = paste0("DNA_barcodes_", base_treatment)
-  n_rna_base_name = paste0("RNA_barcodes_", base_treatment)
-  
-  n_dna_stim_name = paste0("DNA_barcodes_", stim_treatment)
-  n_rna_stim_name = paste0("RNA_barcodes_", stim_treatment)
-  
-  cur_comp_data %>% 
-    group_by(treatment) %>%
-    summarise(n_replicates = max(replicate_n)) -> n_replicates
-  
-  #Divide the number of barcodes by the number of replicates for each condition
-  architecture_summary[n_dna_base_name] = architecture_summary[n_dna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
-  architecture_summary[n_rna_base_name] = architecture_summary[n_rna_base_name] / (n_replicates%>%filter(treatment == base_treatment))$n_replicates
-  architecture_summary[n_dna_stim_name] = architecture_summary[n_dna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
-  architecture_summary[n_rna_stim_name] = architecture_summary[n_rna_stim_name] / (n_replicates%>%filter(treatment == stim_treatment))$n_replicates
-  
-
   left_join(architecture_summary, lrt) -> lrt
-  
   write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
+  
+  obj <- NULL
+  lrt <- NULL
+  ready_dna_mat <- NULL
+  ready_rna_mat <- NULL
+  gc() #Return memory to system
     
 }
