@@ -15,10 +15,10 @@ runs_dir = args[3]
 
 ###For testing
 # RESULTS_DIR = "../pairwise_results/"
-RESULTS_DIR = "../../../mpra_final_data/pairwise_results/"
-comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_14-09-2023_08-59.tsv")
-param <- MulticoreParam(workers = 25)
-runs_dir = "../../../mpra_final_data/"
+# RESULTS_DIR = "../../../mpra_final_data/pairwise_results/"
+# comps = read_tsv("../entered_pairwise_comparisons/pairwise_comparisons_14-09-2023_08-59.tsv")
+# param <- MulticoreParam(workers = 25)
+# runs_dir = "../../../mpra_final_data/"
 ###
 
 for (comp_id in comps$id){
