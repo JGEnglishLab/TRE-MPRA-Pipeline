@@ -214,7 +214,7 @@ for (comp_id in comps$id){
   lrt <- testLrt(obj)
   lrt$architecture = row.names(lrt)
   left_join(architecture_summary, lrt) -> lrt
-  write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'____local.csv'))
+  write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
   
   obj <- NULL
   lrt <- NULL
