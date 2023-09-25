@@ -4,7 +4,7 @@ MERGE_DIR = "joined_files/"
 TRIM_DIR = "trimmed_files/"
 
 f = open(f"{MERGE_DIR}matching_names.csv", "r+")
-l = open(f"{MERGE_DIR}merge_stats.csv", "w+")
+l = open(f"merge_stats.csv", "w+")
 
 
 l.write("n_joined,n_un1,n_un2,name\n")
@@ -32,5 +32,8 @@ for line in f:
 
 l.close()
 f.close()
+
+os.system(f"rm -r {TRIM_DIR}")
+
 	
 

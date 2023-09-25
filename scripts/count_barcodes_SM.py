@@ -55,6 +55,8 @@ for file in files_to_count:
 		f.write(line)
 	f.close()
 
+os.system(f"rm -r {MERGED_DIR}")
+
 
 
 

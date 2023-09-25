@@ -769,14 +769,8 @@ if tsv_sample_numbers.sort() != list(map(int, all_sample_numbers)).sort():
         if fileSamplePair[file] not in joined_sample_numbers:
             del fileSamplePair[file]
 
-
-
 f = open(f"./runs/{dir_name}/metaData.tsv", "w+")
 f.write("fileName\tsampleNumber\ttreatment\trun_name\tlong_name\tconcentration\ttime\tcell_type\n")
-
-
-print("Ok")
-treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types
 
 # Write TSV
 for file in fileSamplePair:
@@ -801,11 +795,14 @@ if merge:
 
 sf.write(
     f"""
+TRIM_DIR = "trimmed_files/"
+JOIN_DIR = "joined_files/"
 STARCODE_DIR = "star_code/"
 SCRIPTS_DIR = "../../scripts/"
 BARCODE_MAP_DIR = "../../barcode_map_data/"
 DESCRIPTIVE_STATS_DIR = "run_stats/"
 RAW_COUNTS = "raw_counts/"
+
 
 rule run_quantitative_analysis:
 	message: "Creating stats about run and running MPRAnalyze"
@@ -860,11 +857,14 @@ rule count_barcodes:
 if merge:
     sf.write(
         f"""
+
 rule count_barcodes:
 	message: "Counting Barcodes"
 	input: "fastqs_joined.txt"
 	output: dynamic(RAW_COUNTS + "\u007bn0\u007d.csv")
-	shell: "python3 " + SCRIPTS_DIR + "count_barcodes_SM.py file_info.csv" 
+	run: 
+	    shell("python3 " + SCRIPTS_DIR + "count_barcodes_SM.py file_info.csv")
+	    shell("touch barcodes_counted.txt") 
 	
 rule join_fastqs:
 	message: "Joining Fastq's"
@@ -893,4 +893,5 @@ sys.stdout.flush()
 command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
 os.system(command)
 
+input("DELETE:")
 print("Empirical analysis finished!")
