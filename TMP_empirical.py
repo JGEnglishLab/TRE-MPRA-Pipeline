@@ -893,5 +893,4 @@ sys.stdout.flush()
 command = f"snakemake -s runs/{dir_name}/Snakefile -d runs/{dir_name}/ -j"
 os.system(command)
 
-input("DELETE:")
 print("Empirical analysis finished!")
