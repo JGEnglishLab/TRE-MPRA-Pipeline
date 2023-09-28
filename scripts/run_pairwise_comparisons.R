@@ -185,7 +185,7 @@ for (comp_id in comps$id){
   ################################################################################
   obj <- MpraObject(dnaCounts = as.matrix(ready_dna_mat), rnaCounts = as.matrix(ready_rna_mat),
                     dnaAnnot = as.data.frame(dna_col_ano), rnaAnnot = as.data.frame(rna_col_ano), 
-                    controls = controls, 
+                    #controls = controls, 
                     BPPARAM = param)
   
   obj <- estimateDepthFactors(obj, lib.factor = c("condition", "batch"),
