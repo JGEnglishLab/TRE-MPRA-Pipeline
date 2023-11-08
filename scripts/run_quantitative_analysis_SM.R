@@ -77,17 +77,17 @@ param = MulticoreParam(workers = args[5])
 
 #For editing
 ####
-# mData=read_tsv("../runs/yo3/metaData.tsv")
-# barcodeMap=read_csv("../barcode_map_data/finalBarcodeMap.csv")
+# mData=read_tsv("19664-test3/metaData.tsv")
+# barcodeMap=read_csv("../github/TRE-MPRA-Pipeline/barcode_map_data/finalBarcodeMap.csv")
 # barcodeMap %>%
 #   mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%
 #   select(architecture, barcode, class)-> barcodeMap
 # spikeFile="None"
 # dnaTSV="None"
-# threads=4
+# threads=10
 # param = BatchtoolsParam(workers = threads)
-# files = c("../runs/yo3/star_code/analyzed_out_sample8_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample43_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "../runs/yo3/star_code/analyzed_out_sample42_mapped_sc_out.tsv")
-# dnaTSV = read_tsv("../test_data/run1_dna_map.tsv", cols(.default = col_character()), col_names = T)
+# files = c("19664-test3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample4_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample7_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample43_mapped_sc_out.tsv")
+# #dnaTSV = read_tsv("../test_data/run1_dna_map.tsv", cols(.default = col_character()), col_names = T)
 
 ####
 
@@ -134,12 +134,6 @@ for (i in 1:length(args)){
 #   # }
 # }
 
-#Calculate the RPM.
-longFile %>%
-  group_by(sample_number) %>%
-  summarise(norm = sum(total_counts) / 1000000) %>%
-  right_join(longFile) %>%
-  mutate(rpm = total_counts/norm)-> longFile
 
 #Join the architectures
 left_join(longFile, barcodeMap, by = c("centroid" = "barcode")) -> longFile
@@ -201,7 +195,7 @@ longFileFiltered %>%
 left_join(summaryStats, spikeTotals) %>%
   mutate(spike_percent = spikeInCount/includedReads) -> completeSummaryStats
 
-#If spike-ins are present, create a Barbplot showing their percent of read for each sample
+#If spike-ins are present, create a Barplot showing their percent of read for each sample
 #GGPLOT IMAGE
 if (length(spike_ins) > 0){
   completeSummaryStats %>%
@@ -221,6 +215,17 @@ write_csv(completeSummaryStats, paste0(PATH_TO_STATS,"run_summary.csv"))
 # ******************************************************************************
 #                             MAKE DNA AND RNA SAMPLES
 # ******************************************************************************
+
+#Remove spike_ins
+longFileFiltered %>%
+  filter(!(centroid %in% spike_ins)) -> longFileFiltered
+
+#Calculate the RPM.
+longFileFiltered %>%
+  group_by(sample_number) %>%
+  summarise(norm = sum(total_counts) / 1000000) %>%
+  right_join(longFileFiltered) %>%
+  mutate(rpm = total_counts/norm)-> longFileFiltered
 
 #Get DNA samples
 longFileFiltered %>% filter(treatment == "DNA") %>%
@@ -266,8 +271,7 @@ if (only_1_dna){ #If there is only one DNA sample do a simple join
   dnaSamples, relationship = "many-to-many") -> dna_joined
 
   #Get all data joined
-  left_join(dna_joined, rnaSamples) %>%
-    filter(!(barcode %in% spike_ins))-> ad
+  left_join(dna_joined, rnaSamples)-> ad
    
 } else{ #If there is > 1 DNA sample number, we need the DNA TSV to pair the DNA and the RNA
   dnaTSV = read_tsv(dnaTSV, cols(.default = col_character()), col_names = T)
@@ -279,10 +283,8 @@ if (only_1_dna){ #If there is only one DNA sample do a simple join
   dnaSamples %>% 
     left_join(dnaTSV,relationship = "many-to-many") -> dna_joined
   
-  left_join(dna_joined, rnaSamples)  %>%
-    filter(!(barcode %in% spike_ins)) -> ad
+  left_join(dna_joined, rnaSamples) -> ad
 }
-
 
 write_csv(ad, "MPRA_data.csv")
 all_emp_res = data.frame()
@@ -293,6 +295,15 @@ for (cur_treatment in unique(ad$treatment)){
   
   ad %>% filter(treatment == cur_treatment) -> cur_data
   
+  #Get aggregate RPMs
+  cur_data %>%
+    group_by(architecture) %>%
+    summarise(!!paste0("sum_RNA_rpm_", cur_treatment) := sum(RNA_rpm, na.rm = T), 
+              !!paste0("sum_DNA_rpm_", cur_treatment) := sum(DNA_rpm, na.rm = T),
+              !!paste0("mean_RNA_rpm_", cur_treatment) := mean(RNA_rpm, na.rm = T), 
+              !!paste0("mean_DNA_rpm_", cur_treatment) := mean(DNA_rpm, na.rm = T),
+              !!paste0("median_RNA_rpm_", cur_treatment) := median(RNA_rpm, na.rm = T), 
+              !!paste0("median_DNA_rpm_", cur_treatment) := median(DNA_rpm, na.rm = T)) -> rpms
   
   #Get rna replicate numbers
   cur_data%>% ungroup() %>% 
@@ -381,12 +392,20 @@ for (cur_treatment in unique(ad$treatment)){
   
   #Get empircal results
   emp_res <- testEmpirical(obj = obj,statistic = alpha$`1`) #There will only be one condition at a time
+  
   colnames(emp_res) <- paste(colnames(emp_res),cur_treatment, sep = "_")
+  
   
   emp_res$architecture = row.names(alpha)
   
+  #Join in the rpm values
+  emp_res %>%
+    left_join(rpms, by = "architecture") -> emp_res
+  
   emp_res %>%
     left_join(architecture_summary, by = "architecture") -> emp_res
+  
+  
 
   if (nrow(all_emp_res)==0){ #Nothing is in the data frame yet
     all_emp_res = emp_res

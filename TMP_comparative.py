@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
+
 import os
 import pandas as pd
 import argparse
 from argparse import RawTextHelpFormatter
 from datetime import datetime
 import help_txt as ht
+import time
 
 def check_y_n_inp(inp, correction_message="Try again"):
     inp = inp.lower()
@@ -124,10 +127,10 @@ if not pairwise_comps:  # They will manually enter the pairwise comparisons
             base = int(comp[0].strip())
             stim = int(comp[1].strip())
 
-            base_treatment = treatment_dict[base].split(" || ")[0]
-            base_run = treatment_dict[base].split(" || ")[1]
-            stim_treatment = treatment_dict[stim].split(" || ")[0]
-            stim_run = treatment_dict[stim].split(" || ")[1]
+            base_treatment = str(treatment_dict[base].split(" || ")[0])
+            base_run = str(treatment_dict[base].split(" || ")[1])
+            stim_treatment = str(treatment_dict[stim].split(" || ")[0])
+            stim_run = str(treatment_dict[stim].split(" || ")[1])
 
             line = f"{iter_id}\t{base_treatment}\t{stim_treatment}\t{base_run}\t{stim_run}\n"
             pairwise_f.write(line)
@@ -354,14 +357,38 @@ else:  # If their multi-input file
 # *****************************************************************************
 
 if run_pairwise:
+
+
     if not pairwise_comps:  # IE they didn't enter a TSV
-        os.system(
-            f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads} {runs_directory}"
-        )
+        df = pd.read_csv(pairwise_comparison_name, sep = "\t", dtype = "str")
+        # os.system(
+        #     f"Rscript scripts/run_pairwise_comparisons.R ./{pairwise_comparison_name} {threads} {runs_directory}"
+        # )
     else:  # They did enter a TSV
+        df = pd.read_csv(pairwise_comparison_name, sep = "\t", dtype = "str")
+
+        # os.system(
+        #     f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}"
+        # )
+
+    for index, row in df.iterrows():
+        print("STARTING NEW ITER")
+        print("*************************************************************************")
+        print("*************************************************************************")
+        print("*************************************************************************")
+
+        print(f"Rscript scripts/run_pairwise_comparisons.R {threads} {runs_directory} {row['base_treatment']} {row['base_run']} {row['stim_treatment']} {row['stim_run']}")
+
         os.system(
-            f"Rscript scripts/run_pairwise_comparisons.R {pairwise_comps} {threads} {runs_directory}"
+            f"Rscript scripts/run_pairwise_comparisons.R {threads} {runs_directory} {row['base_treatment']} {row['base_run']} {row['stim_treatment']} {row['stim_run']}"
         )
+        print("FINISHED NEW ITER")
+        print("*************************************************************************")
+        print("*************************************************************************")
+        print("*************************************************************************")
+        print("SLEEPING!")
+        time.sleep(60)
+        #id base_treatment stim_treatment base_run stim_run
 
 if run_multi:
     if not multi_comps:  # IE they didn't enter a TSV

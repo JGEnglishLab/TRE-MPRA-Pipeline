@@ -8,8 +8,8 @@ install.packages('batchtools')
 
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install("BiocParallel")
+BiocManager::install("BiocParallel", ask=FALSE)
 
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-BiocManager::install("MPRAnalyze")
+BiocManager::install("MPRAnalyze", ask=FALSE)
