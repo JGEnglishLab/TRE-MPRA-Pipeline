@@ -127,22 +127,24 @@ def check_treatment_tsv(tsv):
         and an error or success message
     """
 
-    df = pd.read_csv(tsv, sep='\t')
+    df = pd.read_csv(tsv, sep='\t', dtype=str)
 
     #Make sure it includes the required columns
     if not "sample_number" in df.columns or not "treatment" in df.columns:
         return (
             False,None,None,
             "Treatment TSV must contain \"sample_number\" and \"treatment\" columns",
-            None,None,None,None
+            None, None, None, None, None, None
         )
 
     #Make sure that the sample_number column is only numeric
-    if not is_numeric_dtype(df['sample_number']):
+    # if not isdigit(df['sample_number']):
+    if not df['sample_number'].str.isdigit().all():
+
         return (
             False,None,None,
             "Error in Treatment TSV, \"sample_number\" column must be numeric",
-            None,None,None,None
+            None, None, None, None, None, None
         )
 
     #Make sure that the sample numbers are all unique
@@ -150,7 +152,7 @@ def check_treatment_tsv(tsv):
         return (
             False,None,None,
             "Error in Treatment TSV, \"sample_number\" column must have no repeated values",
-            None,None,None,None,
+            None, None, None, None, None, None
         )
 
     #Make sure that the short names don't contain any illegal chars
@@ -159,14 +161,14 @@ def check_treatment_tsv(tsv):
             return (
                 False,None,None,
                 "Error in Treatment TSV, \"treatment\" column may not contain any of the following characters\n#_%&{}<>*?/\ $'!\":@+`|=,",
-                None,None,None,None
+                None, None, None, None, None, None
             )
     #Make sure there are no commas
     if any(any(df[col].astype(str).str.contains(",")) for col in df.columns):
         return (
             False,None,None,
             "Error in Treatment TSV, no commas (,) are allowed in the Treatment TSV",
-            None,None,None,None
+            None, None, None, None, None, None
         )
     # If cell type exists, make sure that they are the same for all replicates
     try:
@@ -175,7 +177,7 @@ def check_treatment_tsv(tsv):
             return (
                 False,None,None,
                 "Error in Treatment TSV, cell types must be the same for replicates",
-                None,None,None,None
+                None, None, None, None, None, None
             )
     except KeyError:
         pass
@@ -187,7 +189,7 @@ def check_treatment_tsv(tsv):
             return (
                 False,None,None,
                 "Error in Treatment TSV, concentration must be the same for replicates of the same treatment (short name)",
-                None,None,None,None
+                None, None, None, None, None, None
             )
     except KeyError:
         pass
@@ -199,7 +201,7 @@ def check_treatment_tsv(tsv):
             return (
                 False, None, None,
                 "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
-                None, None, None, None
+                None, None, None, None, None, None
             )
     except KeyError:
         pass
@@ -211,7 +213,7 @@ def check_treatment_tsv(tsv):
             return (
                 False, None, None,
                 "Error in Treatment TSV, time must be the same for replicates of the same treatment (short name)",
-                None, None, None, None
+                None, None, None, None, None, None
             )
     except KeyError:
         pass
@@ -223,12 +225,36 @@ def check_treatment_tsv(tsv):
             return (
                 False, None, None,
                 "Error in Treatment TSV, long name must be the same for replicates of the same treatment (short name)",
-                None, None, None, None
+                None, None, None, None, None, None
             )
     except KeyError:
         pass
 
-    #Make dictionary with sample numer and short names
+    # If anonymous exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="treatment")["anonymous_name"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] <= 1):
+            return (
+                False, None, None,
+                "Error in Treatment TSV, anonymous name must be the same for replicates of the same treatment (short name)",
+                None, None, None, None, None, None
+            )
+    except KeyError:
+        pass
+
+    # If tag exists, make sure that they are the same for all replicates
+    try:
+        s = df.groupby(by="treatment")["tag"].nunique()
+        if not all(s.loc[~(s.index == "DNA")] <= 1):
+            return (
+                False, None, None,
+                "Error in Treatment TSV, tag must be the same for replicates of the same treatment (short name)",
+                None, None, None, None, None, None
+            )
+    except KeyError:
+        pass
+
+    #Make dictionary with sample number and short names
     treatments = dict(zip(df.sample_number, df.treatment))
     sample_list = list(df["sample_number"])
 
@@ -253,8 +279,25 @@ def check_treatment_tsv(tsv):
     except:
         cell_types = dict.fromkeys(df.sample_number)
 
+    try:
+        tags = dict(zip(df.sample_number, df.tag))
+    except:
+        tags = dict.fromkeys(df.sample_number)
 
-    return True, treatments, sample_list, "Treatment TSV looks good", long_names, concentrations, times, cell_types
+    try:
+        anonymous_names = dict(zip(df.sample_number, df.anonymous_name))
+    except:
+        anonymous_names = dict.fromkeys(df.sample_number)
+
+    #All these lines do is replace NaN with "None" for each dict
+    anonymous_names = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in anonymous_names.items()}
+    tags = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in tags.items()}
+    cell_types = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in cell_types.items()}
+    times = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in times.items()}
+    concentrations = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in concentrations.items()}
+    long_names = {key: "None" if isinstance(value, float) and np.isnan(value) else value for key, value in long_names.items()}
+
+    return True, treatments, sample_list, "Treatment TSV looks good", long_names, concentrations, times, cell_types, tags, anonymous_names
 
 
 def check_DNA_tsv(tsv, dna_samples, rna_samples):
@@ -277,11 +320,11 @@ def check_DNA_tsv(tsv, dna_samples, rna_samples):
         error_msg = "Columns must be numeric"
         return False, error_msg
 
-    if not sorted(dict.fromkeys(list(df["DNA_sample_number"]))) == sorted(dna_samples):
+    if not sorted(dict.fromkeys(list(df["DNA_sample_number"]))) == sorted([int(i) for i in dna_samples]):
         error_msg = f"Error in DNA TSV, the DNA sample numbers in DNA TSV don't match DNA sample numbers in treatment TSV"
         return False, error_msg
 
-    if not sorted(dict.fromkeys(list(df["RNA_sample_number"]))) == sorted(rna_samples):
+    if not sorted(dict.fromkeys(list(df["RNA_sample_number"]))) ==sorted([int(i) for i in rna_samples]):
         error_msg = f"Error in DNA TSV, the RNA sample numbers in DNA TSV don't match RNA sample numbers in treatment TSV"
         return False, error_msg
 
@@ -403,12 +446,12 @@ while not legal_path:
 print("Treatment TSV found!")
 
 # treatment_tsv = open(treatment_tsv_path, "r")
-correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types= check_treatment_tsv(treatment_tsv_path)
+correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types,tags, anonymous_names= check_treatment_tsv(treatment_tsv_path)
 while not correct_tsv:
     print("Error with treatment TSV provided")
     print(msg)
     _ = input('Check format and and try again (Enter "y" to continue)')
-    correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types= check_treatment_tsv(treatment_tsv_path)
+    correct_tsv, treatments, tsv_sample_numbers, msg, long_names, concentrations, times, cell_types,tags, anonymous_names= check_treatment_tsv(treatment_tsv_path)
 
 noDNAProvided = True
 DNA_sample_num = []
@@ -772,12 +815,12 @@ if tsv_sample_numbers.sort() != list(map(int, all_sample_numbers)).sort():
             del fileSamplePair[file]
 
 f = open(f"./runs/{dir_name}/metaData.tsv", "w+")
-f.write("fileName\tsampleNumber\ttreatment\trun_name\tlong_name\tconcentration\ttime\tcell_type\n")
+f.write("fileName\tsampleNumber\ttreatment\trun_name\tlong_name\tconcentration\ttime\tcell_type\ttag\tanonymous_name\n")
 
 # Write TSV
 for file in fileSamplePair:
     #File, sample#, treatment name, run_name
-    line = (f"{file}\t{fileSamplePair[file]}\t{treatments[int(fileSamplePair[file])]}\t{dir_name}\t{long_names[int(fileSamplePair[file])]}\t{concentrations[int(fileSamplePair[file])]}\t{times[int(fileSamplePair[file])]}\t{cell_types[int(fileSamplePair[file])]}\n")
+    line = (f"{file}\t{fileSamplePair[file]}\t{treatments[fileSamplePair[file]]}\t{dir_name}\t{long_names[fileSamplePair[file]]}\t{concentrations[fileSamplePair[file]]}\t{times[fileSamplePair[file]]}\t{cell_types[fileSamplePair[file]]}\t{tags[fileSamplePair[file]]}\t{anonymous_names[fileSamplePair[file]]}\n")
     print(line)
     f.write(line)
 

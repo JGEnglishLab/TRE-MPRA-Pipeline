@@ -421,7 +421,7 @@ all_emp_res %>%
 
 
 mData %>% 
-  select(treatment, run_name, long_name, cell_type, concentration, time, cell_type, run_name) %>% 
+  select(treatment, run_name, long_name, cell_type, concentration, time, cell_type, run_name, tag, anonymous_name) %>% 
   unique() %>%
   write_csv(paste0(unique(mData$run_name),"__meta_data.csv"))
 
