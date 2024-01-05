@@ -1,7 +1,6 @@
 def r_empirical():
     return """
     Takes a string to specify the name of the current run
-    The name may not include "_" or "/" characters
 
     e.g. "-r 19919"
     """
@@ -18,14 +17,13 @@ def f():
 
 
 def t():
-    return """
+    return f"""
     Takes a path to the treatment TSV
     The path may be absolute or direct
     Treatment TSV is used to pair sample numbers with treatment names
     At least one DNA sample must be present for the pipeline to work. All DNA samples should simply be labeled as "DNA"
     If you have multiple replicates of the same treatment they must be the same name
     "sample_number" and "treatment" columns are required
-    "treatment" column may not include any of the following characters #_%&{}<>*?/\ $'!":@+`|=, or spaces
     "long_name","concentration","time","cell_type" columns are optional, they are only for keeping track of your samples and they won't change the analysis
     See example of TSV below
     
