@@ -160,34 +160,6 @@ def p():
     """
 
 
-def m():
-    return """
-    Takes a path to a tsv file containing multivariate comparisons
-    The path may be absolute or direct
-    If this flag is left blank TMP_comparative.py will ask for user input to create the TSV
-    If you make your own tsv you must use this header 
-
-    id	treatment	run 
-    
-    The id column should be used to specify the multivariate comparisons, for example if you 
-    wanted to compare treatments A, B and C against each other, you would give them all the same id - See example below
-
-
-    id	treatment	run
-    1	Marin-1	20250
-    1	Marin-2	20250
-    1	Marin-3	20250
-    2	Serum Free	19664
-    2	ADRB2-2	20250
-    2	ADRB2-5	20250
-    3	Serum Free	19664
-    3	ADRB2-5	20250
-    3	Marin-3	20250
-    3	FBS	19664
-
-    e.g. "-m ../multi_comparisons.tsv"
-    """
-
 def r_comparative():
     return"""
     Takes a path to the directory that contains the output directories from TMP_empirical.py
