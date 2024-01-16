@@ -236,10 +236,8 @@ longFileFiltered %>% filter(treatment == "DNA") %>%
   select(barcode, DNA_count, DNA_rpm, DNA_sample_number, architecture, class)-> dnaSamples
 
 dnaSamples %>% arrange(desc(DNA_count), barcode) %>% # Also arrange by barcode for the event of ties
-  group_by(architecture, DNA_sample_number) %>% 
-  top_n(N, DNA_count) %>%
-  mutate(barcode_n =  row_number()) %>%
-  filter(barcode_n <= N) -> dnaSamples
+  group_by(architecture, DNA_sample_number) %>%
+  mutate(barcode_n =  row_number())-> dnaSamples
 
 #Get RNA samples
 longFileFiltered %>% filter(treatment != "DNA") %>%
@@ -286,6 +284,15 @@ if (only_1_dna){ #If there is only one DNA sample do a simple join
   left_join(dna_joined, rnaSamples) -> ad
 }
 
+ad %>%
+  group_by(architecture, treatment) %>% 
+  summarise(aggregate_ratio = sum(RNA_rpm, na.rm = T)/sum(DNA_rpm, na.rm = T)) -> rpms
+
+rpms %>% 
+  pivot_wider(id_cols = architecture, names_from = treatment, values_from = aggregate_ratio, names_prefix = "aggregate_rpm_ratio_") -> rpms
+
+ad %>% filter(barcode_n <= N) -> ad
+
 write_csv(ad, "MPRA_data.csv")
 all_emp_res = data.frame()
 
@@ -295,15 +302,7 @@ for (cur_treatment in unique(ad$treatment)){
   
   ad %>% filter(treatment == cur_treatment) -> cur_data
   
-  #Get aggregate RPMs
-  cur_data %>%
-    group_by(architecture) %>%
-    summarise(!!paste0("sum_RNA_rpm_", cur_treatment) := sum(RNA_rpm, na.rm = T), 
-              !!paste0("sum_DNA_rpm_", cur_treatment) := sum(DNA_rpm, na.rm = T),
-              !!paste0("mean_RNA_rpm_", cur_treatment) := mean(RNA_rpm, na.rm = T), 
-              !!paste0("mean_DNA_rpm_", cur_treatment) := mean(DNA_rpm, na.rm = T),
-              !!paste0("median_RNA_rpm_", cur_treatment) := median(RNA_rpm, na.rm = T), 
-              !!paste0("median_DNA_rpm_", cur_treatment) := median(DNA_rpm, na.rm = T)) -> rpms
+
   
   #Get rna replicate numbers
   cur_data%>% ungroup() %>% 
@@ -398,9 +397,7 @@ for (cur_treatment in unique(ad$treatment)){
   
   emp_res$architecture = row.names(alpha)
   
-  #Join in the rpm values
-  emp_res %>%
-    left_join(rpms, by = "architecture") -> emp_res
+
   
   emp_res %>%
     left_join(architecture_summary, by = "architecture") -> emp_res
@@ -414,11 +411,11 @@ for (cur_treatment in unique(ad$treatment)){
   }
 }
 
-
 all_emp_res %>% 
   select(-starts_with("control")) %>%
   mutate(controls = startsWith(.$architecture, "Spacer") | startsWith(.$architecture, "Scramble")) -> all_emp_res
 
+all_emp_res %>% left_join(rpms) -> all_emp_res
 
 mData %>% 
   select(treatment, run_name, long_name, cell_type, concentration, time, cell_type, run_name, tag, anonymous_name) %>% 

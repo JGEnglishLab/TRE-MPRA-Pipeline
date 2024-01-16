@@ -1,19 +1,9 @@
 name: sm
 channels:
   - bioconda
-#  - r
-#  - conda-forge
-#  - defaults
-dependencies:
-#  - python=3.9.7
-#  - numpy
-#  - biopython
-#  - pandas
-  - snakemake
 
+dependencies:
   - starcode
-#  - snakemake
-#  - snakemake-minimal=7.21.0
   - trim-galore
   - pip
 

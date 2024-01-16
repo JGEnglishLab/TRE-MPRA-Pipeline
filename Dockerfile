@@ -33,7 +33,7 @@ FROM ubuntu:latest AS runtime
 COPY --from=fastq-join /usr/bin/fastq-join /usr/bin
 COPY --from=conda-stuff /opt/conda/bin/python /usr/bin
 COPY --from=conda-stuff /venv/bin/starcode /usr/bin
-COPY --from=conda-stuff /venv/bin/snakemake /usr/bin
+#COPY --from=conda-stuff /venv/bin/snakemake /usr/bin
 COPY --from=conda-stuff /venv/bin/trim_galore /usr/bin
 COPY --from=conda-stuff /venv/bin/pip /usr/bin
 
@@ -73,6 +73,7 @@ RUN pip install numpy
 RUN pip install cutadapt
 RUN pip install datetime
 RUN pip install indexed-gzip
+RUN pip install pulp==2.7.0
 
 #Install R Packages
 COPY install.R /app

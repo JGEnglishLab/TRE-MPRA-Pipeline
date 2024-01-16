@@ -214,6 +214,7 @@ if (same_DNA){
 lrt <- testLrt(obj)
 lrt$architecture = row.names(lrt)
 left_join(architecture_summary, lrt) -> lrt
+lrt$logFC = log2(exp(lrt$logFC))
 write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
 
 
