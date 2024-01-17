@@ -24,13 +24,13 @@ def t():
     At least one DNA sample must be present for the pipeline to work. All DNA samples should simply be labeled as "DNA"
     If you have multiple replicates of the same treatment they must be the same name
     "sample_number" and "treatment" columns are required
-    "long_name","concentration","time","cell_type" columns are optional, they are only for keeping track of your samples and they won't change the analysis
+    "long_name","concentration","time","cell_type","tag" and "anonymous_name" columns are optional, they are only for keeping track of your samples and they won't change the analysis
     See example of TSV below
     
     sample_number   treatment
-    1   Serum Free
-    2   Serum Free
-    3   Serum Free
+    1   Serum-Free
+    2   Serum-Free
+    3   Serum-Free
     4   ATP
     5   Forskolin
     6   DNA
@@ -105,7 +105,7 @@ def d():
     The path may be absolute or direct    
     Sometimes you may not keep the DNA fastq files in the same location as your RNA fastq files
     This flag is only necessary if the directory specified by -f doesn't contain all the fastq files
-    Use this flag to specify the path to the directory containing the fastq files for your DNA fastq files
+    Use this flag to specify the path to the directory containing the DNA fastq files
 
     e.g. "-d ../sequence_data/19919_dna_fq_files/"
     """
@@ -116,7 +116,7 @@ def n():
     Takes an integer to specify the number of threads to be used by MPRAnalyze
     Default = 1
 
-    e.g. "-n 40"
+    e.g. "-n 8"
     """
 
 
