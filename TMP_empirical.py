@@ -14,6 +14,8 @@ from datetime import datetime
 import subprocess
 import help_txt as ht
 
+
+
 print("Running TMP_empirical")
 DEFAULT_THREADS = 1
 BAD_CHARS = ["#","%","&","{","}","<",">","*","?","/","\\","$","'","!","\""," ",":","@","+","`","|","=",",","_"]
@@ -346,7 +348,7 @@ parser.add_argument("-r", required=False, type=str, help=ht.r_empirical())
 parser.add_argument("-f", required=True, type=str, help=ht.f())
 parser.add_argument("-t", required=True, type=str, help=ht.t())
 parser.add_argument("-dt", required=False, type=str, help=ht.dt())
-parser.add_argument("-sr", required=False, type=str, default="S", help=ht.sr())
+parser.add_argument("-sr", required=False, type=str, default="_S", help=ht.sr())
 parser.add_argument("-d", required=False, type=str, help=ht.d())
 parser.add_argument("-s", required=False, type=str, help=ht.s())
 parser.add_argument("-n", required=False, type=int, default=DEFAULT_THREADS, help=ht.n())
@@ -413,6 +415,7 @@ wd = os.getcwd()
 
 
 if not dir_name:
+    print("TESTING TESTING TESTING TESTING")
     dir_name = input("Enter the name of the run: ")
 
 while not all(x not in dir_name for x in BAD_CHARS):
@@ -638,6 +641,7 @@ These are example file names that would get merged.
 Note in order to pair files, the only difference can be between R1 and R2
 """
 f = open(f"./runs/{dir_name}/joined_files/matching_names.csv", "w+")
+f.write("file1_name,file2_name,joined_name\n")
 # new_files = []
 numFiles = len(files)
 numPaired = 0
@@ -667,6 +671,8 @@ for file in files:
 file1s_copy = file1s.copy()
 file2s_copy = file2s.copy()
 
+
+
 for file1 in file1s:
     for file2 in file2s:
         if diff_letters(file1, file2) == 1 and diff_reads(file1, file2):
@@ -693,6 +699,7 @@ for file1 in file1s:
             fastq_join_name = f"{finalName}_%.fq"
             f.write(f"{file1},{file2},{fastq_join_name}\n")
             print(file1, "\t", file2, "\t", fastq_join_name)
+
 
             finalName = f"{finalName}_join.csv"
             paired_files.append(finalName)
@@ -803,7 +810,7 @@ if tsv_sample_numbers.sort() != list(map(int, all_sample_numbers)).sort():
     print(joined_sample_numbers)
 
     con = input(
-        "If you only want to use the above files enter y, otherwise enter n to exit and fixe your files (y/n): "
+        "If you only want to use the above files enter y, otherwise enter n to exit and fix your files (y/n): "
     )
     con = check_y_n_inp(con)
 

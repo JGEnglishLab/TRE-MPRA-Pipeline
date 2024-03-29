@@ -77,19 +77,19 @@ param = MulticoreParam(workers = args[5])
 
 #For editing
 ####
-# mData=read_tsv("19664-test3/metaData.tsv")
-# barcodeMap=read_csv("../github/TRE-MPRA-Pipeline/barcode_map_data/finalBarcodeMap.csv")
+# mData=read_tsv("../../TRE-MPRA-pipeline-docker/test_output/test-full/metaData.tsv")
+# barcodeMap=read_csv("../barcode_map_data/finalBarcodeMap.csv")
 # barcodeMap %>%
 #   mutate(architecture = paste0(motif,":", id,", ", period,", ", spacer,", ", promoter)) %>%
 #   select(architecture, barcode, class)-> barcodeMap
-# spikeFile="None"
+# spikeFile="../../TRE-MPRA-pipeline-docker/test_output/test-full/spike.txt"
 # dnaTSV="None"
 # threads=10
 # param = BatchtoolsParam(workers = threads)
-# files = c("19664-test3/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample4_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample7_mapped_sc_out.tsv", "19664-test3/star_code/analyzed_out_sample43_mapped_sc_out.tsv")
+# files = c("../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample1_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample2_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample3_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample4_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample5_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample6_mapped_sc_out.tsv", "../../TRE-MPRA-pipeline-docker/test_output/test-full/star_code/analyzed_out_sample7_mapped_sc_out.tsv")
 # #dnaTSV = read_tsv("../test_data/run1_dna_map.tsv", cols(.default = col_character()), col_names = T)
-
-####
+# "../../TRE-MPRA-pipeline-docker/test_output/star_code/analyzed_out_sample1_mapped_sc_out.tsv"
+# ####
 
 
 #If spike in file exists, read it and extract spike ins
@@ -121,13 +121,18 @@ for (i in 1:length(args)){
   }
 }
 
+# #For testing
+# sampleNumbers = c("1", "2", "3", "4", "5", "6", "7")
+# indx = 1
 # for (i in files){
 #     print(i)
 #     curFile = read_tsv(i)
-#     sampleName = str_split(i, "_", n = Inf, simplify = FALSE)[[1]][4] #Gets the sample name ie "sample2"
-#     sampleNumber = substring(sampleName, 7) #Removes "sample" and just gets "2"
-#     print("SAMPLE NUMBER")
-#     print(sampleNumber)
+#     sampleNumber = sampleNumbers[indx]
+#     indx = indx + 1
+#     # sampleName = str_split(i, "_", n = Inf, simplify = FALSE)[[1]][4] #Gets the sample name ie "sample2"
+#     # sampleNumber = substring(sampleName, 7) #Removes "sample" and just gets "2"
+#     # print("SAMPLE NUMBER")
+#     # print(sampleNumber)
 #     curFile = addType(curFile, sampleNumber)
 #     curFile$treatment = unique(mData[mData$sampleNumber == sampleNumber,]$treatment)
 #     longFile = rbind(longFile,curFile)
@@ -184,7 +189,7 @@ write_csv(longFile, paste0(PATH_TO_STATS,"pre_filter_data.csv"))
 #Type 1.2 = centroid is in map & all clustered barcodes that are in the map belong to same architecture as the centroid
 longFile %>% filter(type == "type1" | type == "type1.2") -> longFileFiltered
 
-#Get the Total counds for each spikein
+#Get the Total counts for each spikein
 longFileFiltered %>%
   filter(centroid %in% spike_ins)%>%
   mutate(spike = centroid) %>%
@@ -384,7 +389,7 @@ for (cur_treatment in unique(ad$treatment)){
   
   obj <- analyzeQuantification(obj = obj,
                                dnaDesign = ~ NULL,
-                               #rnaDesign = ~ condition, 
+                               rnaDesign = ~ NULL,
                                BPPARAM = param)
   
   alpha <- getAlpha(obj, by.factor = "condition")
@@ -393,16 +398,11 @@ for (cur_treatment in unique(ad$treatment)){
   emp_res <- testEmpirical(obj = obj,statistic = alpha$`1`) #There will only be one condition at a time
   
   colnames(emp_res) <- paste(colnames(emp_res),cur_treatment, sep = "_")
-  
-  
-  emp_res$architecture = row.names(alpha)
-  
 
-  
+  emp_res$architecture = row.names(alpha)
+
   emp_res %>%
     left_join(architecture_summary, by = "architecture") -> emp_res
-  
-  
 
   if (nrow(all_emp_res)==0){ #Nothing is in the data frame yet
     all_emp_res = emp_res
@@ -422,6 +422,4 @@ mData %>%
   unique() %>%
   write_csv(paste0(unique(mData$run_name),"__meta_data.csv"))
 
-
 write_csv(all_emp_res, paste0(unique(mData$run_name),"__empirical_results.csv"))
-

@@ -3,16 +3,27 @@ import sys
 import os
 import subprocess
 import re
+import pandas as pd
+
+"""
+Loops through the reads of every fastq file.
+Counts the barcodes for each
+Every fastq will hav a csv written that will look like this. 
+
+AGC....,251
+GCT....,52
+"""
+
 MERGED_DIR = "joined_files/"
 
-file_info = open(sys.argv[1], "r")
-files_to_count = []
+file_info = pd.read_csv(sys.argv[1])
+files_to_count = [] #Add all the file paths the will be counted
 
 #Add files that didn't need to be trimmed and joined
-for line in file_info:
-	need_to_trim = line.split(",")[1].strip()
-	file = line.split(",")[0].strip()
-	if need_to_trim == "False":
+for index, row in file_info.iterrows():
+	need_to_trim = row["needs_to_join"]
+	file = row["path_to_file"]
+	if not need_to_trim:
 		files_to_count.append(file)
 
 #Add files that did need to be trimmed and joined
@@ -23,7 +34,6 @@ for file in os.listdir(MERGED_DIR):
 #Count all fastq files
 for file in files_to_count:
 	file_name = file.split("/")[-1]
-
 
 	if file.endswith(".gz"):
 		zipped = True
@@ -38,6 +48,9 @@ for file in files_to_count:
 	else:
 		curRecord = SeqIO.parse(file, "fastq")
 
+	#Loop through every sequence.
+	#If sequence already in dictionary add 1 to its count
+	#Otherwise add it to the dictionary at a count of 1
 	print(f"counting barcodes of {file_name}")
 	for i in curRecord:		
 		curSeq = i.seq[0:24]
@@ -46,8 +59,7 @@ for file in files_to_count:
 		except KeyError:
 			curDict[curSeq] = 1
 
-	file_name = file.split("/")[-1]
-	csvName = re.split(".fastq|.fq", file_name)[0] + ".csv"
+	csvName = re.split(".fastq|.fq", file_name)[0] + ".csv" #Replace that .fq/.fastq with ".csv"
 	csvName = "./raw_counts/" + csvName
 	f = open(csvName, "w+")
 	for key in curDict:
@@ -55,6 +67,7 @@ for file in files_to_count:
 		f.write(line)
 	f.close()
 
+#Removed the merged fastq files
 os.system(f"rm -r {MERGED_DIR}")
 
 

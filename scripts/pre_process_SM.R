@@ -16,56 +16,32 @@ barcodeMap=read_csv(args[2])
 
 #Set up location where files will be written for starcode
 STARCODE_DIR = paste0(wd,"/star_code")
-print(STARCODE_DIR)
 
-#Adds a sample lane column to meta data
-#Samples of the same number but different file name (different lanes) will be added
-mData %>% 
-  select(sampleNumber, fileName) %>% 
-  unique() %>%
-  group_by(sampleNumber) %>% 
-  reframe(lane = row_number(), fileName = fileName) %>%
-  right_join(mData) -> mData
+# Loop through all of the sample numbers
+# For every sample number read every file of that sample number
+# Group by barcode, and summarise by the sum of the counts 
+# We do this to add all the counts across lanes. 
+# Add a boolean that states if each barcode is in the dictionary or not
+# Write file to starcode directory
 
- 
-#Created new merged column
-mData$merged = paste0(mData$sampleNumber,"_",mData$lane)
-
-#Create empty file to hold all the raw data
-longFile <- data.frame(matrix(ncol = 3, nrow = 0))
-
-#Read in all the raw data
-for (file in mData$fileName){
-  row = mData[mData$fileName == file,]
-  n = paste0(row$sampleNumber,"_",row$lane)
-  file_loc = paste0(PATH_TO_INPUT_CSVS, file)
-  curFile = read_csv(file_loc, col_names = F) %>% mutate(name=n)
-  longFile = rbind(longFile,curFile)
+for (sampleNumber in unique(mData$sampleNumber)){
+  
+  rows = mData %>%
+    filter(sampleNumber == !!sampleNumber)
+  files = rows$fileName
+  cur_sample_number_file = data.frame(matrix(ncol = 2, nrow = 0))
+  
+  for (file in files){ #Read every file of the same sample number
+    cur_file = read_csv(paste0(PATH_TO_INPUT_CSVS,file), col_names = F)
+    cur_sample_number_file = rbind(cur_file, cur_sample_number_file)
+  }
+  
+  output_name = paste0(PATH_TO_STARCODE, "sample", sampleNumber,"_mapped.tsv")
+  
+  cur_sample_number_file %>%
+    group_by(X1)%>% #Group by barcode
+    summarise(X2 = sum(X2)) %>% #Summarise the counts as the sum of the counts
+    mutate(mapped = X1 %in% barcodeMap$barcode) %>% #Get a boolean that says if the barcode is in map or not
+    write_tsv(output_name, col_names = F)
 }
 
-#Pivot the data 
-longFile %>% pivot_wider(names_from = name, values_from = X2) %>%
-  rename(barcode = X1) -> wideFile
-wideFile[is.na(wideFile)] <-0
-
-#Writes a tsv for each sample
-#Now, each sample will be written in the PATH_TO_STARCODE dir with info a boolean column specifying if the barcode is in the map or not
-tables_written = 0
-for (i in unique(mData$sampleNumber)){
-  tables_written = tables_written + 1
-  sampleName = paste0("sample",i)
-  curFile = wideFile %>% select("barcode", ((mData %>% filter(sampleNumber == i))$merged))
-  curFile[, sampleName]= rowSums(curFile[ ,-1]) #Sum up lanes
-
-  curFile %>%
-    select(barcode,sampleName) %>%
-    filter(!!sym(sampleName) !=0) %>%
-    mutate(mapped = barcode %in% barcodeMap$barcode) -> curFile
-
-  #Write all the files in prep for running starcode
-  loc = paste0(PATH_TO_STARCODE, sampleName,"_mapped.tsv")
-  write.table(curFile, loc, sep = "\t", col.names = FALSE, quote = F, row.names = F)
-}
-
-
-write_tsv(mData, "metaData.tsv")

@@ -23,10 +23,10 @@ stim_run = args[6]
 # comps = read_tsv("pairwise_comps.tsv")
 # param <- MulticoreParam(workers = 6)
 # runs_dir = "../../../mpra_final_data/"
-# base_treatment = "GFP"
-# base_run = "20250"
-# stim_treatment = "A375-SF"
-# stim_run = "21311.2"
+# base_treatment = "NPFFR1-NP"
+# base_run = "22482"
+# stim_treatment = "NPFFR1mut-NP"
+# stim_run = "22482"
 ###
 
 if (base_run != stim_run){
@@ -214,7 +214,8 @@ if (same_DNA){
 lrt <- testLrt(obj)
 lrt$architecture = row.names(lrt)
 left_join(architecture_summary, lrt) -> lrt
-lrt$logFC = log2(exp(lrt$logFC))
+lrt$log2FC = log2(exp(lrt$logFC))
+lrt %>% select(-logFC) -> lrt
 write_csv(lrt, paste0(RESULTS_DIR,base_treatment,"__", base_run, "_vs_",stim_treatment, "__", stim_run,'.csv'))
 
 
